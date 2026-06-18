@@ -34,4 +34,4 @@ jobs:
       - name: Install dependencies
         run: pip install -r pipeline/requirements.txt
       - name: Test
-        run: pytest pipeline/tests/
+        run: python -m pytest pipeline/tests/
