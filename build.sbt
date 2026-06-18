@@ -23,9 +23,10 @@ lazy val root = (project in file("."))
 
     // ── dependencies ────────────────────────────────────────────────────────
     libraryDependencies ++= Seq(
-      "com.graphhopper" % "graphhopper-core" % "11.0",
-      "org.tomlj"       % "tomlj"            % "1.1.1",
-      "org.scalameta"  %% "munit"            % "1.0.4" % Test,
+      "com.graphhopper" % "graphhopper-core"    % "11.0",
+      "com.graphhopper" % "graphhopper-web-api" % "11.0",
+      "org.tomlj"       % "tomlj"               % "1.1.1",
+      "org.scalameta"  %% "munit"               % "1.0.4" % Test,
     ),
 
     // ── WartRemover ─────────────────────────────────────────────────────────

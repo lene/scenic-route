@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6">
+  <!-- Tiny synthetic graph: A → B → C (all cycleway, routable by bike) -->
+  <!-- Coords near Berlin centroid to stay within reasonable WGS84 bounds -->
+  <node id="1" lat="52.5000" lon="13.4000" version="1"/>
+  <node id="2" lat="52.5010" lon="13.4000" version="1"/>
+  <node id="3" lat="52.5020" lon="13.4000" version="1"/>
+  <way id="101" version="1">
+    <nd ref="1"/>
+    <nd ref="2"/>
+    <tag k="highway" v="cycleway"/>
+    <tag k="name" v="Test Way AB"/>
+  </way>
+  <way id="102" version="1">
+    <nd ref="2"/>
+    <nd ref="3"/>
+    <tag k="highway" v="cycleway"/>
+    <tag k="name" v="Test Way BC"/>
+  </way>
+</osm>
