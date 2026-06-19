@@ -43,17 +43,17 @@ echo "=== Step 2: convert boundary to GeoJSON ==="
 osmium export "$BOUNDARY_PBF" -f geojson -o "$BOUNDARY_GEOJSON" --overwrite
 
 echo "=== Step 3: generate $POLY_FILE ==="
-# The GeoJSON from osmium export is a feature collection; extract the first
-# polygon ring (the outer boundary) and pass it to the clip-polygon generator.
+# Pass paths as env vars so the heredoc can use single-quotes (safe for Python f-strings).
+GEOJSON_PATH="$BOUNDARY_GEOJSON" TOML_PATH="$AREA_TOML" OUT_PATH="$POLY_FILE" \
 python3 - <<'PYEOF'
-import json, sys
+import json, os, sys
 from pathlib import Path
 sys.path.insert(0, str(Path("pipeline")))
 from make_clip_polygon import write_poly_file
 
-geojson_path = Path("$BOUNDARY_GEOJSON")
-toml_path = Path("$AREA_TOML")
-out_path = Path("$POLY_FILE")
+geojson_path = Path(os.environ["GEOJSON_PATH"])
+toml_path    = Path(os.environ["TOML_PATH"])
+out_path     = Path(os.environ["OUT_PATH"])
 
 with geojson_path.open() as fh:
     fc = json.load(fh)
@@ -77,10 +77,17 @@ write_poly_file(toml_path, coords, out_path)
 print(f"Wrote {out_path}")
 PYEOF
 
-echo "=== Step 4: merge Berlin + Brandenburg and clip to polygon ==="
+MERGED_PBF="data/${AREA_ID}-merged.osm.pbf"
+
+echo "=== Step 4a: merge Berlin + Brandenburg ==="
+osmium merge \
+    data/berlin-latest.osm.pbf data/brandenburg-latest.osm.pbf \
+    -o "$MERGED_PBF" --overwrite
+
+echo "=== Step 4b: clip merged extract to polygon ==="
 osmium extract \
     --polygon "$POLY_FILE" \
-    data/berlin-latest.osm.pbf data/brandenburg-latest.osm.pbf \
+    "$MERGED_PBF" \
     -o "$PBF_OUT" --overwrite --strategy=smart
 
 echo "=== Done: $PBF_OUT ==="

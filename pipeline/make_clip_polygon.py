@@ -32,12 +32,16 @@ def buffer_ring_wgs84(
 
 
 def ring_to_poly_lines(name: str, polygon: Polygon) -> list[str]:
-    """Encode a WGS84 Polygon as osmium .poly format lines (no trailing newline)."""
+    """Encode a WGS84 Polygon as osmium .poly format lines (no trailing newline).
+
+    Format: name / ring-number / coords / END (ring) / END (file).
+    """
     coords = list(polygon.exterior.coords)
     lines = [name, "1"]
     for lon, lat in coords:
         lines.append(f"   {lon:.7f}   {lat:.7f}")
-    lines.append("END")
+    lines.append("END")  # close ring
+    lines.append("END")  # close polygon file
     return lines
 
 

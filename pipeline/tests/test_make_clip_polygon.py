@@ -47,10 +47,12 @@ def test_ring_to_poly_lines_format() -> None:
     lines = ring_to_poly_lines("test_area", poly)
     assert lines[0] == "test_area"
     assert lines[1] == "1"
+    # last two lines are END (ring close) + END (file close)
+    assert lines[-2] == "END"
+    assert lines[-1] == "END"
     # each coord line: "   lon   lat"
-    for line in lines[2:-1]:
+    for line in lines[2:-2]:
         parts = line.split()
         assert len(parts) == 2
         float(parts[0])  # lon parseable
         float(parts[1])  # lat parseable
-    assert lines[-1] == "END"
