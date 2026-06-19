@@ -1,4 +1,4 @@
-.PHONY: all data build test test-scala test-python clean help
+.PHONY: all data score build test test-scala test-python clean help
 
 AREA ?= areas/berlin.toml
 
@@ -14,6 +14,10 @@ data/clip: data/fetch
 
 ## Full data pipeline: fetch + clip
 data: data/clip
+
+## Score the area's ways into the per-way CSV store (heavy/manual — not CI)
+score: data/clip
+	cd pipeline ; .venv/bin/python score_area.py ../$(AREA)
 
 ## Compile Scala project
 build:

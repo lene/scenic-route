@@ -18,6 +18,7 @@ pbf_urls = [
 [paths]
 pbf_file    = "data/berlin-80km.osm.pbf"
 graph_cache = "graph-cache/berlin"
+score_file  = "data/berlin-scores.csv"   # Phase 1 per-way score store (global, way-ID keyed)
 
 [demo]
 # Brandenburg Gate → Müggelsee (checkpoint 0 demo route)
