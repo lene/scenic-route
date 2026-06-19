@@ -6,7 +6,7 @@ build-backend = "setuptools.backends.legacy:build"
 name = "scenic-route-pipeline"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = ["shapely>=2.0", "pyproj>=3.6"]
+dependencies = ["shapely>=2.0", "pyproj>=3.6", "geopandas>=0.14", "pyrosm>=0.6"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

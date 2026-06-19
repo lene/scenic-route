@@ -1,3 +1,5 @@
 shapely>=2.0
 pyproj>=3.6
+geopandas>=0.14
+pyrosm>=0.6
 pytest>=8.0
