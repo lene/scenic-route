@@ -115,6 +115,33 @@ def _maxspeed_factor(maxspeed: str | None, separated: bool) -> float:
     return 0.4
 
 
+def lts_from_tags(tags: dict[str, str]) -> int:
+    """Level of Traffic Stress 1..4 from a way's (effective) tags.
+
+    1 = separated or very quiet; 2 = quiet/lane-on-moderate; 3 = moderate
+    mixed traffic; 4 = fast/busy with no cycle provision.
+    """
+    highway = tags.get("highway")
+    infra = cycle_infrastructure(tags)
+    speed = _parse_maxspeed(tags.get("maxspeed"))
+
+    if highway in {"cycleway", "path"} or infra == "track":
+        return 1
+    if highway in {"living_street", "pedestrian"}:
+        return 1
+    if highway == "residential":
+        return 1 if (speed is None or speed <= 30) else 2
+    if infra == "lane":
+        return 2 if (speed is None or speed <= 50) else 3
+    if highway in {"service", "unclassified", "footway", "tertiary", "tertiary_link"}:
+        if speed is None or speed <= 30:
+            return 2
+        return 3 if speed <= 50 else 4
+    if highway in {"secondary", "secondary_link", "primary", "primary_link", "trunk", "trunk_link"}:
+        return 3 if (speed is not None and speed <= 30) else 4
+    return 3
+
+
 def cqi_from_tags(tags: dict[str, str]) -> float:
     """CQI 0..100 for a way from its own (effective) tags.
 
