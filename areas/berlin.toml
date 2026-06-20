@@ -1,0 +1,26 @@
+# Berlin + 80 km — v1 area configuration
+[area]
+id          = "berlin"
+description = "Berlin and surroundings within 80 km of the city boundary"
+
+[boundary]
+# Berlin administrative boundary: OSM relation 62422 (admin_level=4)
+relation_id = 62422
+admin_level = 4
+buffer_km   = 80
+
+[sources]
+pbf_urls = [
+  "https://download.geofabrik.de/europe/germany/berlin-latest.osm.pbf",
+  "https://download.geofabrik.de/europe/germany/brandenburg-latest.osm.pbf",
+]
+
+[paths]
+pbf_file    = "data/berlin-80km.osm.pbf"
+graph_cache = "graph-cache/berlin"
+score_file  = "data/berlin-scores.csv"   # Phase 1 per-way score store (global, way-ID keyed)
+
+[demo]
+# Brandenburg Gate → Müggelsee (checkpoint 0 demo route)
+start = { lat = 52.5163, lon = 13.3777 }
+end   = { lat = 52.4275, lon = 13.6517 }

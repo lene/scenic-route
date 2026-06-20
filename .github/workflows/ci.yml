@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  scala:
+    name: Scala (compile + lint + test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - name: Scalafmt check
+        run: sbt scalafmtCheckAll
+      - name: Scalafix check
+        run: sbt "scalafixAll --check"
+      - name: Test (WartRemover runs at compile)
+        run: sbt test
+
+  python:
+    name: Python (pipeline tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r pipeline/requirements.txt
+      - name: Test
+        run: python -m pytest pipeline/tests/

@@ -1,0 +1,22 @@
+# Minimal fixture area for unit tests — not a real area
+[area]
+id          = "test-area"
+description = "Tiny synthetic area for unit tests"
+
+[boundary]
+relation_id = 12345
+admin_level = 4
+buffer_km   = 10
+
+[sources]
+pbf_urls = [
+  "https://example.com/test-area.osm.pbf",
+]
+
+[paths]
+pbf_file    = "data/test-area.osm.pbf"
+graph_cache = "graph-cache/test-area"
+
+[demo]
+start = { lat = 52.5, lon = 13.4 }
+end   = { lat = 52.6, lon = 13.5 }
