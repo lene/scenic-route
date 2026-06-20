@@ -31,3 +31,21 @@ Append-only. Discoveries, dead ends, gotchas, surprises. Distinct from DECISIONS
 **osmium extract takes one input file**: `osmium extract` does not accept multiple positional PBF inputs. Must `osmium merge` Berlin + Brandenburg first, then extract from the merged file.
 
 **bash heredoc + shell variables**: `<<'DELIMITER'` (single-quoted) prevents all variable expansion inside the heredoc. Used env vars (`GEOJSON_PATH=... python3 - <<'PYEOF'`) to pass shell variables into a single-quoted heredoc.
+
+---
+
+## 2026-06-20 Phase 1 scoring pipeline
+
+**CI: sbt not pre-installed on ubuntu-latest**: `actions/setup-java` with `cache: sbt` caches the sbt artifact cache but does NOT install sbt itself. Newer ubuntu-latest images dropped the pre-installed sbt. Fix: add `uses: sbt/setup-sbt@v1` step before any `sbt` command.
+
+**pyrosm returns GeoDataFrames cleanly**: `osm.get_network(network_type="cycling")` returns ways with `id` column (int64) usable as OSM way id. `get_data_by_custom_criteria` with `custom_filter` returns matching features. Both work against the 247MB Berlin clip. Load time ~150s.
+
+**Full scoring build runtime**: 678,459 ways × (sidepath STRtree + per-way buffer + scenic overlap + blend) took ~73 min. The bottleneck is the Python loop + `union_all` of nearby green/blue features per way. Acceptable for a rare manual job; if this becomes painful, vectorise scenic overlap via `geopandas.sjoin` (aggregate intersection area by way_id across all feature pairs) — avoids per-way `union_all`.
+
+**Sidepath names missing from pyrosm cycling network**: Ways like "Landwehrkanal towpath" and "Grunewald" paths don't appear with those names in the cycling network because OSM ways along canals/forests often carry no name tag (or a different name). Not a scoring problem — the scoring uses geometry/tags, not names. Spot-checks found representative examples via tag/class filtering instead.
+
+**Karl-Marx-Allee green=1.0 at cqi=12.8**: A primary road scoring full green is initially surprising, but Karl-Marx-Allee is heavily tree-lined and the 30m buffer corridor picks up the adjacent Volkspark Friedrichshain. Score still 0.295 (pulled down by low CQI). This is a reasonable outcome — the road is scenic but hostile to cycling, which is exactly what the blend captures.
+
+**Havelchaussee tagged as tertiary not cycleway**: The Havelchaussee is a road (tertiary) through Grunewald forest, not a dedicated cycling way — hence cqi=45, lts=2 and high green (0.927). Correct: it's a scenic but shared road. Phase 2 routing will prefer it for scenic value while penalising the traffic-mix cost.
+
+**score_file path**: Added to berlin.toml under `[paths]`; Scala AreaConfig does not read it in Phase 1 (Phase 2 adds that).
