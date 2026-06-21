@@ -2,7 +2,7 @@ package scenicroute
 
 import java.nio.file.Path
 import scala.io.Source
-import scala.util.{Try, Using}
+import scala.util.{Failure, Success, Try, Using}
 
 /** Quality signals derived from Phase 1 CSV columns for a single OSM way. */
 final case class WayQuality(
@@ -41,6 +41,8 @@ object ScoreStore:
    * Returns [[Map.empty]] if the file does not exist or cannot be read, rather than
    * propagating an exception (functional error-handling policy).
    */
+  // System.err.println resolves to the Any-accepting Java overload in WartRemover's view.
+  @SuppressWarnings(Array("org.wartremover.warts.Any"))
   def load(path: Path): Map[Long, WayQuality] =
     val tryResult: Try[Map[Long, WayQuality]] =
       Using(Source.fromFile(path.toFile.nn)) { source =>
@@ -50,7 +52,12 @@ object ScoreStore:
           .flatMap(parseLine)
           .toMap
       }
-    tryResult.getOrElse(Map.empty[Long, WayQuality])
+    tryResult match
+      case Success(m) => m
+      case Failure(e) =>
+        val msg: String = e.getMessage.nn
+        System.err.println(s"ScoreStore.load: could not read ${path.toString.nn}: $msg")
+        Map.empty[Long, WayQuality]
 
   /** Parses one CSV data line into an optional (wayId, WayQuality) pair. */
   private def parseLine(line: String): Option[(Long, WayQuality)] =

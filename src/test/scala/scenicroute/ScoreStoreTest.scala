@@ -52,4 +52,4 @@ class ScoreStoreTest extends munit.FunSuite:
   test("load: returns empty map when file does not exist"):
     val missing = Paths.get("/tmp/this-file-does-not-exist-scenic-route.csv")
     val store   = ScoreStore.load(missing)
-    assert(store.isEmpty)
+    assertEquals(store, Map.empty[Long, WayQuality])
