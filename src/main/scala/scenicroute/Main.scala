@@ -15,9 +15,9 @@ object Main:
     println(s"Graph cache: ${cfg.graphCache}")
     println(s"Demo: ${cfg.demoStart} → ${cfg.demoEnd}")
     println("Building / loading GraphHopper graph (this may take a few minutes on first run)...")
-    val router = Router.fromOsm(Paths.get(cfg.pbfFile), Paths.get(cfg.graphCache))
+    val router = Router.fromOsm(Paths.get(cfg.pbfFile), Paths.get(cfg.graphCache), Paths.get(cfg.scoresFile))
     println("Graph ready. Routing...")
-    router.route(cfg.demoStart, cfg.demoEnd) match
+    router.route(cfg.demoStart, cfg.demoEnd, RouteParams.default) match
       case Right(route) =>
         println(s"Route found: ${route.distanceMeters.toInt} m, ${route.points.size} points")
         route.points.headOption.foreach(p => println(s"  Start: $p"))

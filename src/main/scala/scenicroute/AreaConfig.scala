@@ -13,6 +13,7 @@ final case class AreaConfig(
     pbfUrls: List[String],
     pbfFile: String,
     graphCache: String,
+    scoresFile: String,
     demoStart: LatLon,
     demoEnd: LatLon
 )
@@ -39,6 +40,7 @@ object AreaConfig:
       pbfUrls = pbfUrls,
       pbfFile = paths.getString("pbf_file").nn,
       graphCache = paths.getString("graph_cache").nn,
+      scoresFile = Option(paths.getString("score_file")).fold("")(identity),
       demoStart = latLon(demo.getTable("start").nn),
       demoEnd = latLon(demo.getTable("end").nn)
     )
