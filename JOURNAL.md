@@ -49,3 +49,21 @@ Append-only. Discoveries, dead ends, gotchas, surprises. Distinct from DECISIONS
 **Havelchaussee tagged as tertiary not cycleway**: The Havelchaussee is a road (tertiary) through Grunewald forest, not a dedicated cycling way — hence cqi=45, lts=2 and high green (0.927). Correct: it's a scenic but shared road. Phase 2 routing will prefer it for scenic value while penalising the traffic-mix cost.
 
 **score_file path**: Added to berlin.toml under `[paths]`; Scala AreaConfig does not read it in Phase 1 (Phase 2 adds that).
+
+---
+
+## 2026-07-01 Phase 2 — score-aware routing
+
+**GH 11.0 value expression limitation**: Each priority statement's value expression may only reference a single encoded value. Attempted `"0.2 + 0.8 * (wI * cqi_quality + wS * scenic_quality)"` — throws at routing time with a parse/validation error. Workaround: two successive `If("true", MULTIPLY, "0.2 + wX * ev_x")` statements. This is a multiplicative proxy for the additive blend (DECISIONS #19).
+
+**`ReaderWay.getId()` is a primitive `long`**: Unlike most Java interop in GH that returns boxed types, `ReaderWay.getId()` returns `long` directly. No `.nn` call needed — the Scala 3 null-safety layer only applies to reference types. Calling `.nn` on a primitive causes a compile error.
+
+**WartRemover `Any` wart on `System.err.println`**: `println(msg)` widens `String` to `Any` via Scala's `Predef.println` signature. Suppressed with `@SuppressWarnings(Array("org.wartremover.warts.Any"))` scoped to the `load` method only — not the whole class.
+
+**WartRemover `Any` wart in test `fail()` with string interpolation**: `fail(s"msg: ${expr}")` widens the interpolated value to `Any`. Fix: pass the string directly without interpolation — `fail(e.errorMessage)` — matching the pattern in RouterTest.
+
+**Path details API for mean EV on a route**: `GHRequest.setPathDetails(util.List.of("cqi_quality","scenic_quality"))` registers detail collectors; `path.getPathDetails().get("ev_name")` returns `List[PathDetail]` where `PathDetail.getValue()` is `Object|Null` (always `java.lang.Double` for decimal EVs) and `getLength()` is the edge point count. Length-weighted mean gives the correct segment-proportional average.
+
+**`gh.setImportRegistry()` ordering confirmed critical**: Calling after `init()` silently skips registration; graph imports with all EV values at default 0. Must be called before `init()` (DECISIONS #20, also noted in Phase 0 JOURNAL but easy to forget).
+
+**Scenic routing test geometry**: With two parallel cycleways — direct (~222 m, low scores) and detour (~301 m, high scores) — `RouteParams(0.5, 0.5, 0.0)` produces priority ~0.394 vs ~0.06 for the direct way. The scenic detour wins by ~5x cost advantage despite being 36% longer by distance. `RouteParams(0, 0, 0)` gives uniform priority so the shorter way wins.

@@ -1,60 +1,64 @@
 # Progress
 
-## Current phase: Phase 1 — Offline scoring pipeline
+## Current phase: Phase 2 — Score-aware routing
 
-### Status: **CHECKPOINT 1 COMPLETE — awaiting sign-off**
+### Status: **CHECKPOINT 2 COMPLETE — awaiting sign-off**
 
-### What's done (Phase 1)
-- [x] Pure-Python GeoPandas + shapely STRtree stack (no PostGIS) — DECISIONS #12
-- [x] CQI tag-class scoring: highway base, cycle infra lift, surface factor, maxspeed factor (tags.py)
-- [x] LTS 1–4 mapping from tags (tags.py)
-- [x] Score blend with zero-weight gradient seam (blend.py) — DEFAULT_WEIGHTS: cqi=0.35, lts=0.15, green=0.25, blue=0.25, gradient=0
-- [x] Green/blue feature predicates (features.py) — tag sets per SPEC §5.2
-- [x] Buffer-overlap scenic scoring in EPSG:25833 (scenic.py)
-- [x] Idempotent CSV way-ID store (store.py) — global, area-independent, skip already-scored ways
-- [x] Sidepath detection via STRtree + ≥2/3 check-point test (sidepath.py)
-- [x] CQI with parallel-road inheritance (cqi.py) — sidepath gets environment factor from road speed
-- [x] PBF loading via pyrosm (io_osm.py) — lazy import so pure-logic tests need no geo stack
-- [x] Pipeline orchestration (pipeline.py) — project EPSG:25833, sidepath resolve, CQI, scenic, blend, store
-- [x] CLI: score_area.py <area.toml>; Makefile `score` target
-- [x] areas/berlin.toml: added score_file = "data/berlin-scores.csv"
-- [x] 55 Python tests — all green; CI: both scala + python jobs green
-- [x] Full Berlin build: 678,459 ways scored in ~73 min → data/berlin-scores.csv (33 MB)
+### What's done (Phase 2)
 
-### CHECKPOINT 1 evidence
+- [x] `WayQuality(cqiQuality, scenicQuality)` + `ScoreStore.deriveSignals` — pure sub-blend formulas
+- [x] `ScoreStore.load(path)` — CSV parser, graceful degradation on missing file (logs to stderr)
+- [x] `ScenicTagParser` — writes derived EV values per way at GH import time
+- [x] `ScenicImportRegistry` — wraps `DefaultImportRegistry`; returns `ImportUnit` for `cqi_quality` / `scenic_quality`
+- [x] `RouteParams(infraWeight, scenicWeight, gradientWeight)` with `default = (0.5, 0.5, 0.0)`
+- [x] `Router.fromOsm(osmFile, graphCache, scoreFile)` — loads scores, registers `ScenicImportRegistry` before `init()`
+- [x] Per-request custom model: two successive MULTIPLY priority statements (multiplicative proxy for additive blend)
+- [x] Path details (`cqi_quality`, `scenic_quality`) on `GHRequest`; `Route.meanCqiQuality` / `meanScenicQuality` (length-weighted)
+- [x] `Main.scala` — before/after demo: stock (wI=wS=0) vs scenic (wI=wS=0.5), prints distance + mean EV scores
+- [x] `ScenicEncodingTest` — EV round-trip: `cqi_quality`/`scenic_quality` path-detail means match derived values (±0.01)
+- [x] `ScenicRoutingTest` — scenic weights pick the longer high-scoring detour; stock weights pick the short direct way
+- [x] 18 Scala tests — all green
+
+### CHECKPOINT 2 evidence
 
 ```
-Score table: data/berlin-scores.csv
-Ways scored: 678,459
-Schema: way_id, cqi (0..100), lts (1..4), green (0..1), blue (0..1), score (0..1)
+Test suite: 18/18 passing (sbt test)
+  SmokeTest:          1 test
+  RouteParamsTest:    2 tests
+  ScoreStoreTest:     4 tests
+  AreaConfigTest:     2 tests
+  RouterTest:         4 tests
+  ScenicEncodingTest: 2 tests  ← EV round-trip verified
+  ScenicRoutingTest:  3 tests  ← routing preference verified
 
-Named spot-checks:
-  Volkspark path          way 57922502   cqi=80.0  lts=1  green=0.781  blue=0.022  score=0.631
-  Berliner Allee primary  way 5051956    cqi=12.8  lts=4  green=0.000  blue=0.000  score=0.045
-  Karl-Marx-Allee prim.   way 4615614    cqi=12.8  lts=4  green=1.000  blue=0.000  score=0.295
-  Havelchaussee tertiary  way 4422232    cqi=45.0  lts=2  green=0.927  blue=0.000  score=0.489
-  Schöneberg res/30       way 60825560   cqi=60.0  lts=1  green=0.057  blue=0.155  score=0.413
-  Cycleway/asphalt        way 4429742    cqi=90.0  lts=1  green=0.537  blue=0.000  score=0.599
-
-Top canal-adjacent quiet ways: blue=1.0, cqi~60, score~0.61
-Best paths (green+blue=1.0, cqi=80): score=0.930
-Worst (trunk, no scenery): cqi=2, lts=4, score=0.007
-
-Distribution (n=678,459):
-  score: mean=0.364  median=0.342  stdev=0.124
-  cqi:   mean=52.6   median=55.0
-  67% of ways have green > 0
+Key test assertions:
+  EV round-trip (way 202: cqi=80, lts=1, green=0.9, blue=0.8):
+    meanCqiQuality   = 0.86 ± 0.01  ✓
+    meanScenicQuality= 0.85 ± 0.01  ✓
+  Routing preference (parallel ways, same endpoints):
+    stock (wI=wS=0): distanceMeters < 250 m  ✓ (takes direct ~222 m way)
+    scenic (wI=wS=0.5): distanceMeters > 260 m  ✓ (takes scenic ~301 m detour)
+    scenic route meanScenicQuality > direct route  ✓
 ```
 
 ### Sanity assessment
-- Busy primaries (Berliner Allee): score=0.045 ✓ correctly low
-- Volkspark path: green=0.78, score=0.63 ✓ scenic path rewarded
-- Canal-adjacent quiet way: blue=1.0, score=0.61 ✓ water proximity captured
-- Best paths (forest+lake edge): score=0.930 ✓ top of range
-- Trunk/no-scenery: score=0.007 ✓ bottom of range
+- Score store loads CSV and derives both EVs cleanly ✓
+- Tag parsers attach to GH import registry; EVs round-trip at 0.01 resolution ✓
+- Per-request weights change route selection without graph rebuild ✓
+- `Main.scala` prints stock vs scenic comparison for the demo area ✓
 
 ### Next step
-**Await human sign-off at CHECKPOINT 1.** Do not start Phase 2 until approved.
+**Await human sign-off at CHECKPOINT 2.** Do not start Phase 3 until approved.
 
 ### Blocked on
-Sign-off from human before Phase 2 (score-aware GraphHopper routing).
+Sign-off from human before Phase 3 (multi-candidate routing, distance targets, GPX export).
+
+---
+
+## Previous phases
+
+### Phase 1 — Offline scoring pipeline (COMPLETE, signed off)
+
+- 55 Python tests green; CI passing
+- 678,459 Berlin ways scored → `data/berlin-scores.csv` (33 MB)
+- Tag: `phase-1-complete`
