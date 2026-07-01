@@ -8,18 +8,19 @@ class RouterTest extends munit.FunSuite:
   private val osmXml = Paths.get(getClass.getResource("/fixtures/test.osm.xml").toURI)
 
   private lazy val router: Router =
-    val graphDir = Files.createTempDirectory("scenic-route-test-graph-")
-    Router.fromOsm(osmXml, graphDir)
+    val graphDir   = Files.createTempDirectory("scenic-route-test-graph-")
+    val scoresFile = Paths.get(getClass.getResource("/fixtures/test-scores.csv").toURI.nn)
+    Router.fromOsm(osmXml, graphDir, scoresFile)
 
   private def routeOrFail(start: LatLon, end: LatLon): Route =
-    router.route(start, end) match
+    router.route(start, end, RouteParams.default) match
       case Right(r) => r
       case Left(e)  => fail(e.errorMessage)
 
   test("route between two nodes returns a non-empty path"):
     val start = LatLon(lat = 52.5000, lon = 13.4000)
     val end   = LatLon(lat = 52.5020, lon = 13.4000)
-    assert(router.route(start, end).isRight)
+    assert(router.route(start, end, RouteParams.default).isRight)
 
   test("routed path has positive distance"):
     val start = LatLon(lat = 52.5000, lon = 13.4000)
@@ -36,4 +37,4 @@ class RouterTest extends munit.FunSuite:
   test("routing to unreachable location returns Left"):
     val start  = LatLon(lat = 52.5000, lon = 13.4000)
     val remote = LatLon(lat = 0.0, lon = 0.0) // Gulf of Guinea — not in graph
-    assert(router.route(start, remote).isLeft)
+    assert(router.route(start, remote, RouteParams.default).isLeft)
