@@ -17,7 +17,7 @@ object Main:
     println("Building / loading GraphHopper graph (this may take a few minutes on first run)...")
     val router = Router.fromOsm(Paths.get(cfg.pbfFile), Paths.get(cfg.graphCache), Paths.get(cfg.scoresFile))
     println("Graph ready.")
-    val stockParams  = RouteParams(infraWeight = 0.0, scenicWeight = 0.0, gradientWeight = 0.0)
+    val stockParams  = RouteParams.default.copy(infraWeight = 0.0, scenicWeight = 0.0, gradientWeight = 0.0)
     val scenicParams = RouteParams.default
 
     def printRoute(label: String, params: RouteParams): Unit =

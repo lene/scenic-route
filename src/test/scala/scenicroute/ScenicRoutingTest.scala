@@ -26,14 +26,14 @@ class ScenicRoutingTest extends munit.FunSuite:
       case Left(e)  => fail(e.errorMessage)
 
   test("stock weights: router picks direct (shorter) route"):
-    val stock = RouteParams(infraWeight = 0.0, scenicWeight = 0.0, gradientWeight = 0.0)
+    val stock = RouteParams.default.copy(infraWeight = 0.0, scenicWeight = 0.0, gradientWeight = 0.0)
     assert(route(stock).distanceMeters < DirectMaxMeters)
 
   test("scenic weights: router picks scenic (longer) detour"):
     assert(route(RouteParams.default).distanceMeters > ScenicMinMeters)
 
   test("scenic route has higher mean scenic_quality than direct route"):
-    val stock  = RouteParams(infraWeight = 0.0, scenicWeight = 0.0, gradientWeight = 0.0)
+    val stock  = RouteParams.default.copy(infraWeight = 0.0, scenicWeight = 0.0, gradientWeight = 0.0)
     val direct = route(stock)
     val scenic = route(RouteParams.default)
     assert(scenic.meanScenicQuality > direct.meanScenicQuality)
