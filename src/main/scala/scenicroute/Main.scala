@@ -2,9 +2,36 @@ package scenicroute
 
 import java.nio.file.Paths
 
+/** A parsed command line: area config + start/end/target for a routing run. */
+final case class RouteRequest(areaToml: String, start: LatLon, end: LatLon, targetKm: Double)
+
 // ponytail: Any suppressed here — println in a CLI entry point inherently widens to Any
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
 object Main:
+
+  /** Parse a `lat,lon` pair; `None` if malformed or out of geographic range. */
+  def parseLatLon(s: String): Option[LatLon] =
+    s.split(',').toList match
+      case latS :: lonS :: Nil =>
+        for
+          lat <- latS.trim.nn.toDoubleOption
+          if lat >= -90.0 && lat <= 90.0
+          lon <- lonS.trim.nn.toDoubleOption
+          if lon >= -180.0 && lon <= 180.0
+        yield LatLon(lat, lon)
+      case _ => None
+
+  /** Parse `<areaToml> <lat,lon> <lat,lon> <targetKm>`; `None` if it doesn't fit. */
+  def parseArgs(args: Array[String]): Option[RouteRequest] =
+    args.toList match
+      case toml :: startS :: endS :: kmS :: Nil =>
+        for
+          start <- parseLatLon(startS)
+          end   <- parseLatLon(endS)
+          km    <- kmS.toDoubleOption
+          if km > 0.0
+        yield RouteRequest(toml, start, end, km)
+      case _ => None
   def main(args: Array[String]): Unit =
     val areaToml = if args.sizeIs > 0 then args(0) else "areas/berlin.toml"
     val cfg      = AreaConfig.load(Paths.get(areaToml))
