@@ -30,3 +30,20 @@ object Main:
 
     printRoute("stock (wI=0, wS=0)", stockParams)
     printRoute("scenic (wI=0.5, wS=0.5)", scenicParams)
+
+    def printRanked(label: String, results: Seq[RankedRoute]): Unit =
+      println(s"\n$label (${results.size} routes):")
+      if results.isEmpty then println("  (none in tolerance window)")
+      else
+        results.zipWithIndex.foreach: (rr, i) =>
+          println(f"  ${i + 1}. ${rr.route.distanceMeters.toInt} m | score=${rr.blendedScore}%.3f | cqi=${rr.route.meanCqiQuality}%.3f | scenic=${rr.route.meanScenicQuality}%.3f")
+
+    // A→B distance-target demo: Brandenburg Gate → Müggelsee, target 30 km
+    println("\n--- Distance-target A→B demo (target 30 km) ---")
+    val abRoutes = router.routeWithTarget(cfg.demoStart, cfg.demoEnd, 30.0, scenicParams)
+    printRanked("A→B ranked routes", abRoutes)
+
+    // Loop demo: from start point, target 20 km
+    println("\n--- Loop demo (target 20 km from start) ---")
+    val loopRoutes = router.routeWithTarget(cfg.demoStart, cfg.demoStart, 20.0, scenicParams)
+    printRanked("Loop ranked routes", loopRoutes)
