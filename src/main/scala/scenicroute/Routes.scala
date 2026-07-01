@@ -15,8 +15,9 @@ import sttp.tapir.server.http4s.Http4sServerInterpreter
 @SuppressWarnings(Array("org.wartremover.warts.Any"))
 object Routes:
 
-  /** Injected routing: pure from the HTTP layer's view. */
-  type RouteFn = (LatLon, LatLon, Double, RouteParams) => Seq[RankedRoute]
+  /** Injected routing + geocoding: the HTTP layer stays testable without a graph or network. */
+  type RouteFn   = (LatLon, LatLon, Double, RouteParams) => Seq[RankedRoute]
+  type GeocodeFn = String => IO[List[GeoResult]]
 
   val health: PublicEndpoint[Unit, Unit, String, Any] =
     endpoint.get.in("health").out(stringBody)
@@ -28,7 +29,14 @@ object Routes:
       .errorOut(stringBody)
       .out(jsonBody[RouteResp])
 
-  def httpRoutes(routeFn: RouteFn): HttpRoutes[IO] =
+  val geocode: PublicEndpoint[String, String, List[GeoResult], Any] =
+    endpoint.get
+      .in("geocode")
+      .in(query[String]("q"))
+      .errorOut(stringBody)
+      .out(jsonBody[List[GeoResult]])
+
+  def httpRoutes(routeFn: RouteFn, geocodeFn: GeocodeFn): HttpRoutes[IO] =
     val healthServer = health.serverLogicSuccess[IO](_ => IO.pure("ok"))
     val routesServer = routes.serverLogic[IO] { req =>
       IO {
@@ -37,4 +45,6 @@ object Routes:
         }
       }
     }
-    Http4sServerInterpreter[IO]().toRoutes(List(healthServer, routesServer))
+    val geocodeServer =
+      geocode.serverLogic[IO](q => geocodeFn(q).map(rs => Right[String, List[GeoResult]](rs)))
+    Http4sServerInterpreter[IO]().toRoutes(List(healthServer, routesServer, geocodeServer))

@@ -34,9 +34,13 @@ class RoutesTest extends munit.FunSuite:
        |"params":{"infraWeight":0.5,"scenicWeight":0.5,"distanceToleranceLow":0.85,
        |"distanceToleranceHigh":1.15,"numSuggestions":4}}""".stripMargin
 
+  private val geoStub: Routes.GeocodeFn =
+    _ => IO.pure(List(GeoResult("Brandenburger Tor", 52.5162746, 13.3777041)))
+
+  private def app = Routes.httpRoutes(stub, geoStub).orNotFound
+
   private def post(body: String): Response[IO] =
-    val req = Request[IO](Method.POST, uri"/routes").withEntity(body)
-    Routes.httpRoutes(stub).orNotFound.run(req).unsafeRunSync()
+    app.run(Request[IO](Method.POST, uri"/routes").withEntity(body)).unsafeRunSync()
 
   test("POST /routes returns 200 with the ranked routes"):
     val resp = post(validJson)
@@ -50,7 +54,13 @@ class RoutesTest extends munit.FunSuite:
     assertEquals(post(bad).status, Status.BadRequest)
 
   test("GET /health returns ok"):
-    val req  = Request[IO](Method.GET, uri"/health")
-    val resp = Routes.httpRoutes(stub).orNotFound.run(req).unsafeRunSync()
+    val resp = app.run(Request[IO](Method.GET, uri"/health")).unsafeRunSync()
     assertEquals(resp.status, Status.Ok)
     assertEquals(resp.as[String].unsafeRunSync(), "ok")
+
+  test("GET /geocode returns matches from the injected fetcher"):
+    val resp = app.run(Request[IO](Method.GET, uri"/geocode?q=Brandenburger+Tor")).unsafeRunSync()
+    assertEquals(resp.status, Status.Ok)
+    decode[List[GeoResult]](resp.as[String].unsafeRunSync()) match
+      case Right(rs) => assertEquals(rs.map(_.label), List("Brandenburger Tor"))
+      case Left(_)   => fail("response did not decode as List[GeoResult]")
