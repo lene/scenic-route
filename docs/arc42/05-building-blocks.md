@@ -92,6 +92,45 @@ a zero-value seam (no elevation EV in v1; wire real DEM in v2).
 
 ---
 
+---
+
+## Level 2: Distance-target routing (Phase 3)
+
+### RouteSelection
+
+Pure pipeline (no GH dependency) — all functions known-answer testable:
+
+```
+filterByDistance(routes, targetM, params) → keeps dist ∈ [low·target, high·target]
+blendedScore(route, params) = infraWeight·meanCqiQuality + scenicWeight·meanScenicQuality
+overlap(a, b) = Jaccard of rounded lat/lon point sets (ponytail: swap for edge-id sets if too coarse)
+dedupe(ranked, threshold) = greedy in rank order; drop if overlap > threshold with any kept route
+rankAndSelect(routes, params) = score → sort desc → dedupe → take min(numSuggestions, 5)
+```
+
+### RankedRoute
+
+`final case class RankedRoute(route: Route, blendedScore: Double)`. Position in returned `Seq` is the rank.
+
+### Router — distance-target extensions
+
+**`routeWithTarget(start, end, targetKm, params): Seq[RankedRoute]`**
+
+Dispatches on `start == end`:
+- **Loop** (`start == end`): `loopCandidates` — 12 seeds × GH `round_trip` algorithm.
+  Single-point request; `Parameters.Algorithms.ROUND_TRIP` + hints `DISTANCE`, `SEED`, `POINTS`.
+- **A→B** (`start ≠ end`): `viaCandidates` — perpendicular-bisector via sampling.
+  Fracs `{0.30, 0.40, 0.55, 0.70, 0.85}` × both sides = 10 vias; route `start → via → end`.
+  Via offset: `h = sqrt((T/2)² − (D/2)²)` where T=target, D=straight-line distance.
+
+Both generators feed: `filterByDistance → rankAndSelect`.
+
+**Spike results (Berlin, Brandenburg Gate → Müggelsee):**
+- `round_trip`: 100% landing rate (10/10 per target) at 15, 20, 30 km
+- Via-point: 40–50% landing rate (4–5/10) at 30, 40 km; 10 vias yields sufficient candidates for top-4
+
+---
+
 ## Cross-cutting: WartRemover suppressions (Phase 2)
 
 | Location | Wart suppressed | Reason |

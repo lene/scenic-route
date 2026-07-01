@@ -83,3 +83,17 @@ Append-only. Discoveries, dead ends, gotchas, surprises. Distinct from DECISIONS
 **WartRemover `Null` wart on `getBest() == null`**: `-Yexplicit-nulls` rejects `== null`; WartRemover rejects `eq null`. Use `Option(rsp.getBest()).map(_.nn.getDistance())` — wraps the nullable return in Option, calls `.nn` on the non-null path inside map.
 
 **Router.buildRequest refactor (done early)**: Extracted per-request custom-model + path-details wiring into `private def buildRequest(points: List[LatLon], params)`. `route()`, `routeLoop()`, and `routeVia()` all delegate to it. This is Milestone B Task 4 done as part of the spike; kept as it simplifies the Router and all tests stay green (18/18).
+
+**WartRemover `IterableOps` wart bans `head`/`last`**: Both trigger `IterableOps` wart. Use `headOption.getOrElse(...)` or pattern match on `List`. Also bans `tail`/`init`.
+
+**WartRemover `DefaultArguments` wart**: Fires on any method with default parameter values. Test helper methods need all params passed explicitly (or use `@SuppressWarnings`).
+
+**WartRemover `ListAppend` wart bans `:+`**: `List.:+` is O(n); wart rejects it. Use prepend `candidate :: acc` + `.reverse` at the end for O(n) total instead.
+
+**WartRemover `AsInstanceOf` in PathDetail stub**: Subclassing `PathDetail` in tests and returning `Double.box(d)` (not `d.asInstanceOf[AnyRef]`) avoids the `AsInstanceOf` wart cleanly, since `Double.box` is an explicit boxing call.
+
+**Loop (start==end) detection**: WartRemover `Equals` wart bans `==` on `Double`. Use `(a.lat - b.lat).abs < 1e-9 && (a.lon - b.lon).abs < 1e-9` for coordinate equality check.
+
+**Integration test fixture reuse**: The `parallel.osm.xml` fixture (3 nodes, 3 ways — triangle graph) is sufficient for both A→B target-distance tests (via point snaps to node 12) and loop tests (GH round_trip traverses the triangle). No separate grid fixture needed.
+
+**`String` interpolation in `assert` messages**: `assert(cond, s"... ${expr}")` widens `expr` to `Any`, triggering the wart. Use a plain string literal as the message instead.
