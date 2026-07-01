@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6">
+  <!--
+    Two parallel bike routes between node 10 (south) and node 11 (north):
+      Direct  (way 201): 10 → 11, ~222 m, low scenic scores
+      Scenic  (ways 202+203): 10 → 12 → 11, ~301 m, high scenic scores
+
+    With uniform priority (wI=wS=0) the direct route wins on distance.
+    With scenic weighting (wI=wS=0.5) the scenic detour scores ~5x higher
+    priority per metre and wins despite being 35% longer.
+  -->
+  <node id="10" lat="52.5000" lon="13.4000" version="1"/>
+  <node id="11" lat="52.5020" lon="13.4000" version="1"/>
+  <node id="12" lat="52.5010" lon="13.4015" version="1"/>
+
+  <!-- direct, low-scenic cycleway -->
+  <way id="201" version="1">
+    <nd ref="10"/>
+    <nd ref="11"/>
+    <tag k="highway" v="cycleway"/>
+    <tag k="name" v="Direct Way"/>
+  </way>
+
+  <!-- scenic detour, south segment -->
+  <way id="202" version="1">
+    <nd ref="10"/>
+    <nd ref="12"/>
+    <tag k="highway" v="cycleway"/>
+    <tag k="name" v="Scenic Way South"/>
+  </way>
+
+  <!-- scenic detour, north segment -->
+  <way id="203" version="1">
+    <nd ref="12"/>
+    <nd ref="11"/>
+    <tag k="highway" v="cycleway"/>
+    <tag k="name" v="Scenic Way North"/>
+  </way>
+</osm>
