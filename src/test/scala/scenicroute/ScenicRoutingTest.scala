@@ -8,8 +8,8 @@ class ScenicRoutingTest extends munit.FunSuite:
   // Scenic route (ways 202+203): nodes 10→12→11, ~301 m
   // With wI=wS=0: uniform priority → distance-minimising → direct wins (~222 m)
   // With wI=wS=0.5: scenic ways score ~5x higher priority per metre → scenic wins (>260 m)
-  private val DirectMaxMeters  = 250.0
-  private val ScenicMinMeters  = 260.0
+  private val DirectMaxMeters = 250.0
+  private val ScenicMinMeters = 260.0
 
   private lazy val router: Router =
     val osmFile    = Paths.get(getClass.getResource("/fixtures/parallel.osm.xml").toURI.nn)
@@ -26,14 +26,16 @@ class ScenicRoutingTest extends munit.FunSuite:
       case Left(e)  => fail(e.errorMessage)
 
   test("stock weights: router picks direct (shorter) route"):
-    val stock = RouteParams.default.copy(infraWeight = 0.0, scenicWeight = 0.0, gradientWeight = 0.0)
+    val stock =
+      RouteParams.default.copy(infraWeight = 0.0, scenicWeight = 0.0, gradientWeight = 0.0)
     assert(route(stock).distanceMeters < DirectMaxMeters)
 
   test("scenic weights: router picks scenic (longer) detour"):
     assert(route(RouteParams.default).distanceMeters > ScenicMinMeters)
 
   test("scenic route has higher mean scenic_quality than direct route"):
-    val stock  = RouteParams.default.copy(infraWeight = 0.0, scenicWeight = 0.0, gradientWeight = 0.0)
+    val stock =
+      RouteParams.default.copy(infraWeight = 0.0, scenicWeight = 0.0, gradientWeight = 0.0)
     val direct = route(stock)
     val scenic = route(RouteParams.default)
     assert(scenic.meanScenicQuality > direct.meanScenicQuality)

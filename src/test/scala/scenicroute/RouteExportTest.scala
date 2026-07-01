@@ -1,6 +1,7 @@
 package scenicroute
 
 import com.graphhopper.util.details.PathDetail
+
 import java.util.Locale
 
 class RouteExportTest extends munit.FunSuite:
@@ -17,7 +18,13 @@ class RouteExportTest extends munit.FunSuite:
       override def getLength: Int   = 1
     Route(distM, points, List(cqiDetail), List(scenicDetail))
 
-  private def mkRanked(distM: Double, points: List[LatLon], cqi: Double, scenic: Double, score: Double): RankedRoute =
+  private def mkRanked(
+      distM: Double,
+      points: List[LatLon],
+      cqi: Double,
+      scenic: Double,
+      score: Double
+  ): RankedRoute =
     RankedRoute(mkRoute(distM, points, cqi, scenic), score)
 
   private def count(hay: String, needle: String): Int =

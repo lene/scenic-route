@@ -39,14 +39,17 @@ object Main:
       case None =>
         if args.sizeIs > 1 then
           println("Could not parse routing args.")
-          println("Usage: <areaToml> <startLat,startLon> <endLat,endLon> <targetKm> — falling back to demo.\n")
+          println(
+            "Usage: <areaToml> <startLat,startLon> <endLat,endLon> <targetKm> — falling back to demo.\n"
+          )
         runDemo(if args.sizeIs > 0 then args(0) else "areas/berlin.toml")
 
   /** CLI path: route to the requested target and write the export files. */
   private def runExport(req: RouteRequest): Unit =
     val cfg = AreaConfig.load(Paths.get(req.areaToml))
     printHeader(cfg)
-    val router = Router.fromOsm(Paths.get(cfg.pbfFile), Paths.get(cfg.graphCache), Paths.get(cfg.scoresFile))
+    val router =
+      Router.fromOsm(Paths.get(cfg.pbfFile), Paths.get(cfg.graphCache), Paths.get(cfg.scoresFile))
     println("Graph ready.")
     // isLoop: same abs-tolerance coordinate check as Router (== on Double is a wart).
     val loop = (req.start.lat - req.end.lat).abs < 1e-9 && (req.start.lon - req.end.lon).abs < 1e-9
@@ -57,23 +60,29 @@ object Main:
     else
       // ponytail: whole-km label in the filename; fractional targets truncate in the
       // name only (the routed data is unaffected).
-      writeExports(cfg.id, s"$mode-${req.targetKm.toInt}km", routes).foreach(p => println(s"Wrote $p"))
+      writeExports(cfg.id, s"$mode-${req.targetKm.toInt}km", routes).foreach(p =>
+        println(s"Wrote $p")
+      )
 
   /** No / invalid routing args: the built-in Berlin demo, now also writing exports. */
   private def runDemo(areaToml: String): Unit =
     val cfg = AreaConfig.load(Paths.get(areaToml))
     printHeader(cfg)
     println(s"Demo: ${cfg.demoStart} → ${cfg.demoEnd}")
-    val router = Router.fromOsm(Paths.get(cfg.pbfFile), Paths.get(cfg.graphCache), Paths.get(cfg.scoresFile))
+    val router =
+      Router.fromOsm(Paths.get(cfg.pbfFile), Paths.get(cfg.graphCache), Paths.get(cfg.scoresFile))
     println("Graph ready.")
-    val stockParams  = RouteParams.default.copy(infraWeight = 0.0, scenicWeight = 0.0, gradientWeight = 0.0)
+    val stockParams =
+      RouteParams.default.copy(infraWeight = 0.0, scenicWeight = 0.0, gradientWeight = 0.0)
     val scenicParams = RouteParams.default
 
     def printRoute(label: String, params: RouteParams): Unit =
       print(s"[$label] Routing... ")
       router.route(cfg.demoStart, cfg.demoEnd, params) match
         case Right(r) =>
-          println(s"${r.distanceMeters.toInt} m | cqi_quality=${f"${r.meanCqiQuality}%.3f"} scenic_quality=${f"${r.meanScenicQuality}%.3f"}")
+          println(
+            s"${r.distanceMeters.toInt} m | cqi_quality=${f"${r.meanCqiQuality}%.3f"} scenic_quality=${f"${r.meanScenicQuality}%.3f"}"
+          )
         case Left(e) =>
           println(s"FAILED: ${e.errorMessage}")
 
@@ -83,15 +92,19 @@ object Main:
     println("\n--- Distance-target A→B demo (target 30 km) ---")
     val abRoutes = router.routeWithTarget(cfg.demoStart, cfg.demoEnd, 30.0, scenicParams)
     printRanked("A→B ranked routes", abRoutes)
-    if abRoutes.nonEmpty then writeExports(cfg.id, "a2b-30km", abRoutes).foreach(p => println(s"Wrote $p"))
+    if abRoutes.nonEmpty then
+      writeExports(cfg.id, "a2b-30km", abRoutes).foreach(p => println(s"Wrote $p"))
 
     println("\n--- Loop demo (target 20 km from start) ---")
     val loopRoutes = router.routeWithTarget(cfg.demoStart, cfg.demoStart, 20.0, scenicParams)
     printRanked("Loop ranked routes", loopRoutes)
-    if loopRoutes.nonEmpty then writeExports(cfg.id, "loop-20km", loopRoutes).foreach(p => println(s"Wrote $p"))
+    if loopRoutes.nonEmpty then
+      writeExports(cfg.id, "loop-20km", loopRoutes).foreach(p => println(s"Wrote $p"))
 
   private def printHeader(cfg: AreaConfig): Unit =
-    println(s"Area: ${cfg.id} (boundary relation ${cfg.boundaryRelationId}, buffer ${cfg.bufferKm} km)")
+    println(
+      s"Area: ${cfg.id} (boundary relation ${cfg.boundaryRelationId}, buffer ${cfg.bufferKm} km)"
+    )
     println(s"PBF:  ${cfg.pbfFile}")
     println(s"Graph cache: ${cfg.graphCache}")
     println("Building / loading GraphHopper graph (this may take a few minutes on first run)...")
@@ -101,7 +114,9 @@ object Main:
     if results.isEmpty then println("  (none in tolerance window)")
     else
       results.zipWithIndex.foreach: (rr, i) =>
-        println(f"  ${i + 1}. ${rr.route.distanceMeters.toInt} m | score=${rr.blendedScore}%.3f | cqi=${rr.route.meanCqiQuality}%.3f | scenic=${rr.route.meanScenicQuality}%.3f")
+        println(
+          f"  ${i + 1}. ${rr.route.distanceMeters.toInt} m | score=${rr.blendedScore}%.3f | cqi=${rr.route.meanCqiQuality}%.3f | scenic=${rr.route.meanScenicQuality}%.3f"
+        )
 
   /** Write the combined GeoJSON + GPX for a route set under `out/<area>/`. */
   private def writeExports(areaId: String, base: String, routes: Seq[RankedRoute]): List[Path] =

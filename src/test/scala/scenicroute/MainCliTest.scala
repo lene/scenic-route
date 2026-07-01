@@ -23,7 +23,10 @@ class MainCliTest extends munit.FunSuite:
 
   test("parseArgs parses a full routing request"):
     val got = Main.parseArgs(Array("areas/berlin.toml", "52.51,13.37", "52.42,13.65", "30"))
-    assertEquals(got, Some(RouteRequest("areas/berlin.toml", LatLon(52.51, 13.37), LatLon(52.42, 13.65), 30.0)))
+    assertEquals(
+      got,
+      Some(RouteRequest("areas/berlin.toml", LatLon(52.51, 13.37), LatLon(52.42, 13.65), 30.0))
+    )
 
   test("parseArgs rejects the wrong number of arguments"):
     assertEquals(Main.parseArgs(Array("only", "two")), None)

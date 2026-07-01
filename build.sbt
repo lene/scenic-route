@@ -18,7 +18,7 @@ lazy val root = (project in file("."))
       "-language:strictEquality",
       "-Xmax-inlines:64",
       "-deprecation",
-      "-feature",
+      "-feature"
     ),
 
     // ── dependencies ────────────────────────────────────────────────────────
@@ -26,13 +26,13 @@ lazy val root = (project in file("."))
       "com.graphhopper" % "graphhopper-core"    % "11.0",
       "com.graphhopper" % "graphhopper-web-api" % "11.0",
       "org.tomlj"       % "tomlj"               % "1.1.1",
-      "org.scalameta"  %% "munit"               % "1.0.4" % Test,
+      "org.scalameta"  %% "munit"               % "1.0.4" % Test
     ),
 
     // ── WartRemover ─────────────────────────────────────────────────────────
     wartremoverErrors ++= Warts.allBut(
-      Wart.ImplicitParameter,   // needed for munit implicit suites
-      Wart.PlatformDefault,     // toString on some GH types
+      Wart.ImplicitParameter, // needed for munit implicit suites
+      Wart.PlatformDefault    // toString on some GH types
     ),
 
     // ── scalafix: needs semanticdb ───────────────────────────────────────────
@@ -40,5 +40,5 @@ lazy val root = (project in file("."))
     semanticdbVersion := scalafixSemanticdb.revision,
 
     // ── test framework ───────────────────────────────────────────────────────
-    testFrameworks += new TestFramework("munit.Framework"),
+    testFrameworks += new TestFramework("munit.Framework")
   )

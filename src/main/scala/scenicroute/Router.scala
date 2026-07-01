@@ -11,8 +11,8 @@ import com.graphhopper.{GHRequest, GHResponse, GraphHopper, GraphHopperConfig}
 
 import java.nio.file.Path
 import java.util
-import scala.jdk.CollectionConverters.*
-import scala.math.{cos, Pi, sqrt}
+import scala.jdk.CollectionConverters._
+import scala.math.{cos, sqrt, Pi}
 
 final class Router private (gh: GraphHopper):
 
@@ -25,18 +25,21 @@ final class Router private (gh: GraphHopper):
         if errors.isEmpty then "unknown routing error"
         else errors.get(0).nn.getMessage.nn
       Left[RouteError, Route](RouteError.RoutingError(msg))
-    else
-      Right[RouteError, Route](extractRoute(rsp))
+    else Right[RouteError, Route](extractRoute(rsp))
 
   /** Return up to `params.numSuggestions` ranked routes near `targetKm` km.
     *
-    * When `start == end` (loop ride), uses GH's `round_trip` algorithm seeded
-    * with multiple values.  For distinct endpoints, samples perpendicular-bisector
-    * via points and routes `start → via → end`.  Both feeds the shared
-    * filter → dedupe → rank pipeline.
+    * When `start == end` (loop ride), uses GH's `round_trip` algorithm seeded with multiple values.
+    * For distinct endpoints, samples perpendicular-bisector via points and routes
+    * `start → via → end`. Both feeds the shared filter → dedupe → rank pipeline.
     */
-  def routeWithTarget(start: LatLon, end: LatLon, targetKm: Double, params: RouteParams): Seq[RankedRoute] =
-    val targetM    = targetKm * 1000
+  def routeWithTarget(
+      start: LatLon,
+      end: LatLon,
+      targetKm: Double,
+      params: RouteParams
+  ): Seq[RankedRoute] =
+    val targetM = targetKm * 1000
     val candidates =
       if isLoop(start, end) then loopCandidates(start, targetM, params)
       else viaCandidates(start, end, targetM, params)
@@ -49,7 +52,9 @@ final class Router private (gh: GraphHopper):
   private def loopCandidates(start: LatLon, targetM: Double, params: RouteParams): Seq[Route] =
     (0 until Router.LoopSeeds).flatMap: seed =>
       val req = buildRequest(List(start), params).setAlgorithm(Algorithms.ROUND_TRIP)
-      req.getHints().nn
+      req
+        .getHints()
+        .nn
         .putObject(Algorithms.RoundTrip.DISTANCE, targetM)
         .putObject(Algorithms.RoundTrip.SEED, seed.toLong)
         .putObject(Algorithms.RoundTrip.POINTS, 3)
@@ -57,7 +62,12 @@ final class Router private (gh: GraphHopper):
       if rsp.hasErrors() then None
       else Option(rsp.getBest()).map(_ => extractRoute(rsp))
 
-  private def viaCandidates(start: LatLon, end: LatLon, targetM: Double, params: RouteParams): Seq[Route] =
+  private def viaCandidates(
+      start: LatLon,
+      end: LatLon,
+      targetM: Double,
+      params: RouteParams
+  ): Seq[Route] =
     computeVias(start, end, targetM).flatMap: via =>
       val rsp = gh.route(buildRequest(List(start, via, end), params))
       if rsp.hasErrors() then None
@@ -104,12 +114,14 @@ final class Router private (gh: GraphHopper):
       .setPathDetails(util.List.of("cqi_quality", "scenic_quality"))
 
   private def extractRoute(rsp: GHResponse): Route =
-    val path    = rsp.getBest().nn
-    val ptList  = path.getPoints().nn
-    val points  = (0 until ptList.size()).map(i => LatLon(ptList.getLat(i), ptList.getLon(i))).toList
+    val path   = rsp.getBest().nn
+    val ptList = path.getPoints().nn
+    val points = (0 until ptList.size()).map(i => LatLon(ptList.getLat(i), ptList.getLon(i))).toList
     val details = path.getPathDetails().nn
-    val cqiD: List[PathDetail]    = Option(details.get("cqi_quality")).fold(List.empty)(_.nn.asScala.toList)
-    val scenicD: List[PathDetail] = Option(details.get("scenic_quality")).fold(List.empty)(_.nn.asScala.toList)
+    val cqiD: List[PathDetail] =
+      Option(details.get("cqi_quality")).fold(List.empty)(_.nn.asScala.toList)
+    val scenicD: List[PathDetail] =
+      Option(details.get("scenic_quality")).fold(List.empty)(_.nn.asScala.toList)
     Route(path.getDistance(), points, cqiD, scenicD)
 
   // Loop detection: start and end are the same coordinate (within float rounding)
@@ -120,13 +132,17 @@ object Router:
   private val ProfileName = "bike"
   private val LoopSeeds   = 12
   // Via fractions of hMax (perpendicular offset); spike showed f>0.85 consistently overshoots.
-  private val ViaFracs    = List(0.30, 0.40, 0.55, 0.70, 0.85)
+  private val ViaFracs = List(0.30, 0.40, 0.55, 0.70, 0.85)
 
   def fromOsm(osmFile: Path, graphCache: Path, scoreFile: Path): Router =
     val scores = ScoreStore.load(scoreFile)
     new Router(buildHopper(osmFile.toString, graphCache.toString, scores))
 
-  private def buildHopper(osmFile: String, graphCacheDir: String, scores: Map[Long, WayQuality]): GraphHopper =
+  private def buildHopper(
+      osmFile: String,
+      graphCacheDir: String,
+      scores: Map[Long, WayQuality]
+  ): GraphHopper =
     val customModel = CustomModel().addToSpeed(Statement.If("true", Op.LIMIT, "15"))
     val config = GraphHopperConfig()
       .putObject("graph.location", graphCacheDir)

@@ -73,7 +73,7 @@ class RouteSelectionTest extends munit.FunSuite:
     assertEquals(RouteSelection.dedupe(List(a, b), 0.7).size, 1)
 
   test("dedupe keeps the higher-scored route (first in ranked input)"):
-    val r = mkRoute(1000.0, List(p1, p2, p3), 0.5, 0.5)
+    val r    = mkRoute(1000.0, List(p1, p2, p3), 0.5, 0.5)
     val kept = RouteSelection.dedupe(List(RankedRoute(r, 0.8), RankedRoute(r, 0.6)), 0.7)
     kept.headOption match
       case Some(rr) => assertEqualsDouble(rr.blendedScore, 0.8, 0.001)
@@ -82,8 +82,8 @@ class RouteSelectionTest extends munit.FunSuite:
   // ── rankAndSelect ────────────────────────────────────────────────────────────
 
   test("rankAndSelect orders by blendedScore descending"):
-    val low  = mkRoute(1000.0, List(p1, p2), 0.2, 0.2)
-    val high = mkRoute(1000.0, List(p3, p4), 0.8, 0.8)
+    val low    = mkRoute(1000.0, List(p1, p2), 0.2, 0.2)
+    val high   = mkRoute(1000.0, List(p3, p4), 0.8, 0.8)
     val result = RouteSelection.rankAndSelect(List(low, high), params)
     result match
       case first :: second :: Nil =>
@@ -93,9 +93,11 @@ class RouteSelectionTest extends munit.FunSuite:
 
   test("rankAndSelect caps at 5 even when numSuggestions is higher"):
     val bigParams = params.copy(numSuggestions = 10)
-    val routes = (1 to 8).map(i => mkRoute(1000.0, List(LatLon(52.50 + i * 0.01, 13.40)), 0.5, 0.5)).toList
+    val routes =
+      (1 to 8).map(i => mkRoute(1000.0, List(LatLon(52.50 + i * 0.01, 13.40)), 0.5, 0.5)).toList
     assert(RouteSelection.rankAndSelect(routes, bigParams).sizeIs <= 5)
 
   test("rankAndSelect returns at most numSuggestions routes"):
-    val routes = (1 to 3).map(i => mkRoute(1000.0, List(LatLon(52.50 + i * 0.01, 13.40)), 0.5, 0.5)).toList
+    val routes =
+      (1 to 3).map(i => mkRoute(1000.0, List(LatLon(52.50 + i * 0.01, 13.40)), 0.5, 0.5)).toList
     assertEquals(RouteSelection.rankAndSelect(routes, params.copy(numSuggestions = 2)).size, 2)

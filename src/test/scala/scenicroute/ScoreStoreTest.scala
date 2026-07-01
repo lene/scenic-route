@@ -27,7 +27,7 @@ class ScoreStoreTest extends munit.FunSuite:
   // ── load ─────────────────────────────────────────────────────────────────────
 
   test("load: parses 3-row fixture CSV correctly"):
-    val path = Paths.get(getClass.getResource("/fixtures/test-scores.csv").toURI.nn)
+    val path  = Paths.get(getClass.getResource("/fixtures/test-scores.csv").toURI.nn)
     val store = ScoreStore.load(path)
 
     assertEquals(store.size, 3)

@@ -6,41 +6,43 @@ import scala.util.{Failure, Success, Try, Using}
 
 /** Quality signals derived from Phase 1 CSV columns for a single OSM way. */
 final case class WayQuality(
-  /** Blended cycling-quality index: road surface + traffic stress, 0..1. */
-  cqiQuality: Double,
-  /** Blended scenic quality: green + blue feature proximity, 0..1. */
-  scenicQuality: Double,
+    /** Blended cycling-quality index: road surface + traffic stress, 0..1. */
+    cqiQuality: Double,
+    /** Blended scenic quality: green + blue feature proximity, 0..1. */
+    scenicQuality: Double
 )
 
 object ScoreStore:
 
-  /**
-   * Derives [[WayQuality]] from raw Phase 1 CSV signals.
-   *
-   * Sub-blends are fixed coefficients chosen to mirror the Phase 1 blend.py weighting:
-   *   - cqiQuality  = 0.7 * (cqi / 100) + 0.3 * ((4 - lts) / 3)
-   *   - scenicQuality = 0.5 * green + 0.5 * blue
-   *
-   * @param cqi   Cycling Quality Index (0..100)
-   * @param lts   Level of Traffic Stress (1..4, lower is better)
-   * @param green Green-feature proximity (0..1)
-   * @param blue  Blue/water-feature proximity (0..1)
-   */
+  /** Derives [[WayQuality]] from raw Phase 1 CSV signals.
+    *
+    * Sub-blends are fixed coefficients chosen to mirror the Phase 1 blend.py weighting:
+    *   - cqiQuality = 0.7 * (cqi / 100) + 0.3 * ((4 - lts) / 3)
+    *   - scenicQuality = 0.5 * green + 0.5 * blue
+    *
+    * @param cqi
+    *   Cycling Quality Index (0..100)
+    * @param lts
+    *   Level of Traffic Stress (1..4, lower is better)
+    * @param green
+    *   Green-feature proximity (0..1)
+    * @param blue
+    *   Blue/water-feature proximity (0..1)
+    */
   def deriveSignals(cqi: Double, lts: Int, green: Double, blue: Double): WayQuality =
     val cqiQuality    = 0.7 * (cqi / 100.0) + 0.3 * ((4 - lts.toDouble) / 3.0)
     val scenicQuality = 0.5 * green + 0.5 * blue
     WayQuality(cqiQuality = cqiQuality, scenicQuality = scenicQuality)
 
-  /**
-   * Loads the Phase 1 score CSV at [[path]] and returns an immutable [[Map]] from
-   * OSM way ID to [[WayQuality]].
-   *
-   * Expected CSV columns (header required): `way_id,cqi,lts,green,blue,score`
-   * The `score` column is present but ignored; only raw components are used.
-   *
-   * Returns [[Map.empty]] if the file does not exist or cannot be read, rather than
-   * propagating an exception (functional error-handling policy).
-   */
+  /** Loads the Phase 1 score CSV at [[path]] and returns an immutable [[Map]] from OSM way ID to
+    * [[WayQuality]].
+    *
+    * Expected CSV columns (header required): `way_id,cqi,lts,green,blue,score` The `score` column
+    * is present but ignored; only raw components are used.
+    *
+    * Returns [[Map.empty]] if the file does not exist or cannot be read, rather than propagating an
+    * exception (functional error-handling policy).
+    */
   // System.err.println resolves to the Any-accepting Java overload in WartRemover's view.
   @SuppressWarnings(Array("org.wartremover.warts.Any"))
   def load(path: Path): Map[Long, WayQuality] =

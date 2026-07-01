@@ -4,8 +4,8 @@ import java.util.Locale
 
 /** Pure serialisers for ranked routes → GeoJSON / GPX text.
   *
-  * All numeric formatting is pinned to `Locale.ROOT`: the dev JVM default locale
-  * is German, where `%.6f` would emit `13,377` and corrupt both formats.
+  * All numeric formatting is pinned to `Locale.ROOT`: the dev JVM default locale is German, where
+  * `%.6f` would emit `13,377` and corrupt both formats.
   */
 // Any: StringContext.s takes Any*, so every interpolation widens to Any. This
 // module is entirely string assembly; suppress once here (as Main does).
@@ -28,14 +28,19 @@ object RouteExport:
     Palette.lift((rank - 1) % 5).getOrElse("#333333")
 
   private def escapeXml(s: String): String =
-    s.replace("&", "&amp;").nn
-      .replace("<", "&lt;").nn
-      .replace(">", "&gt;").nn
-      .replace("\"", "&quot;").nn
-      .replace("'", "&apos;").nn
+    s.replace("&", "&amp;")
+      .nn
+      .replace("<", "&lt;")
+      .nn
+      .replace(">", "&gt;")
+      .nn
+      .replace("\"", "&quot;")
+      .nn
+      .replace("'", "&apos;")
+      .nn
 
-  /** One FeatureCollection holding all routes; each a LineString in [lon,lat]
-    * order (RFC 7946) with rank/score properties + simplestyle stroke.
+  /** One FeatureCollection holding all routes; each a LineString in [lon,lat] order (RFC 7946) with
+    * rank/score properties + simplestyle stroke.
     */
   def toGeoJson(routes: Seq[RankedRoute]): String =
     val features = routes.zipWithIndex.map: (rr, i) =>
@@ -51,8 +56,8 @@ object RouteExport:
       s"""{"type":"Feature","properties":{$props},"geometry":{"type":"LineString","coordinates":[$coords]}}"""
     s"""{"type":"FeatureCollection","features":[${features.mkString(",")}]}"""
 
-  /** One `<gpx>` document with one `<trk>` per route. No `<ele>` — the v1 area is
-    * flat and carries no DEM (zero-weight gradient seam, SPEC §7.5).
+  /** One `<gpx>` document with one `<trk>` per route. No `<ele>` — the v1 area is flat and carries
+    * no DEM (zero-weight gradient seam, SPEC §7.5).
     */
   def toGpx(routes: Seq[RankedRoute], name: String): String =
     val safe = escapeXml(name)

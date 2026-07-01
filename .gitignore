@@ -7,6 +7,9 @@ hs_err_pid*
 
 /.idea/
 /target/
+/project/target/
+/project/project/
+/.bsp/
 
 # OSM data and GraphHopper graph cache (large binaries, built locally)
 /data/

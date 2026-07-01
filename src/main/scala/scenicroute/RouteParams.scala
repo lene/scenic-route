@@ -13,11 +13,11 @@ final case class RouteParams(
 
 object RouteParams:
   val default: RouteParams = RouteParams(
-    infraWeight          = 0.5,
-    scenicWeight         = 0.5,
-    gradientWeight       = 0.0,
-    distanceToleranceLow  = 0.85,
+    infraWeight = 0.5,
+    scenicWeight = 0.5,
+    gradientWeight = 0.0,
+    distanceToleranceLow = 0.85,
     distanceToleranceHigh = 1.15,
-    numSuggestions       = 4,
-    overlapThreshold     = 0.7
+    numSuggestions = 4,
+    overlapThreshold = 0.7
   )

@@ -5,14 +5,16 @@ import com.graphhopper.routing.ev.{DecimalEncodedValue, EdgeIntAccess}
 import com.graphhopper.routing.util.parsers.TagParser
 import com.graphhopper.storage.IntsRef
 
-/**
- * Writes a precomputed per-way quality score into a single [[DecimalEncodedValue]]
- * edge attribute during the GraphHopper OSM import phase.
- *
- * @param ev     the encoded-value slot that receives the score
- * @param scores map from OSM way ID to precomputed [[WayQuality]]
- * @param pick   selects the relevant quality dimension from [[WayQuality]]
- */
+/** Writes a precomputed per-way quality score into a single [[DecimalEncodedValue]] edge attribute
+  * during the GraphHopper OSM import phase.
+  *
+  * @param ev
+  *   the encoded-value slot that receives the score
+  * @param scores
+  *   map from OSM way ID to precomputed [[WayQuality]]
+  * @param pick
+  *   selects the relevant quality dimension from [[WayQuality]]
+  */
 final class ScenicTagParser(
     ev: DecimalEncodedValue,
     scores: Map[Long, WayQuality],
