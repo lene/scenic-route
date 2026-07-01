@@ -67,3 +67,19 @@ Append-only. Discoveries, dead ends, gotchas, surprises. Distinct from DECISIONS
 **`gh.setImportRegistry()` ordering confirmed critical**: Calling after `init()` silently skips registration; graph imports with all EV values at default 0. Must be called before `init()` (DECISIONS #20, also noted in Phase 0 JOURNAL but easy to forget).
 
 **Scenic routing test geometry**: With two parallel cycleways — direct (~222 m, low scores) and detour (~301 m, high scores) — `RouteParams(0.5, 0.5, 0.0)` produces priority ~0.394 vs ~0.06 for the direct way. The scenic detour wins by ~5x cost advantage despite being 36% longer by distance. `RouteParams(0, 0, 0)` gives uniform priority so the shorter way wins.
+
+---
+
+## 2026-07-01 Phase 3 spike — distance-target routing
+
+**GH `round_trip` landing rate**: 10 seeds × 3 targets (15, 20, 30 km) on Berlin graph → **100% in [0.85N, 1.15N]** window every time. GH's built-in round_trip reliably hits target length. Distinct seeds yield distinct topologies. Single-point request only (start lat/lon); use `Parameters.Algorithms.ROUND_TRIP` + hints `RoundTrip.DISTANCE`, `RoundTrip.SEED`, `RoundTrip.POINTS`. Custom model (priority blend) applies normally.
+
+**Via-point road-distance overhead**: Routing `start → via → end` where via is placed at perpendicular bisector offset `h = sqrt((T/2)² - (D/2)²)` (fraction f of hMax): road distance is 30–60% longer than the straight-line via triangle. f=0.40–0.55 landed for T=30 km; f=0.70–0.85 for T=40 km. Landing rate ~50% from 10 vias per target; expect 6–8 from 16 vias. Sufficient for top-4 output.
+
+**Via-point upper fractions overshoot**: f=1.0 (hMax) consistently overshoots by 20–50%. Cap fracs at 0.85 in production; using {0.30, 0.40, 0.55, 0.70, 0.85} × both sides = 10 vias.
+
+**WartRemover `Equals` wart on `== 0.0`**: Comparing `Double == 0.0` fires the Equals wart. Use `<= 0.0` (comparison operator, not equality) for the "no detour needed" case.
+
+**WartRemover `Null` wart on `getBest() == null`**: `-Yexplicit-nulls` rejects `== null`; WartRemover rejects `eq null`. Use `Option(rsp.getBest()).map(_.nn.getDistance())` — wraps the nullable return in Option, calls `.nn` on the non-null path inside map.
+
+**Router.buildRequest refactor (done early)**: Extracted per-request custom-model + path-details wiring into `private def buildRequest(points: List[LatLon], params)`. `route()`, `routeLoop()`, and `routeVia()` all delegate to it. This is Milestone B Task 4 done as part of the spike; kept as it simplifies the Router and all tests stay green (18/18).

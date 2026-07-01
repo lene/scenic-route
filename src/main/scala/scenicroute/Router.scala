@@ -4,7 +4,9 @@ import com.graphhopper.config.{LMProfile, Profile}
 import com.graphhopper.json.Statement
 import com.graphhopper.json.Statement.Op
 import com.graphhopper.util.CustomModel
+import com.graphhopper.util.Parameters.Algorithms
 import com.graphhopper.util.details.PathDetail
+import com.graphhopper.util.shapes.GHPoint
 import com.graphhopper.{GHRequest, GHResponse, GraphHopper, GraphHopperConfig}
 
 import java.nio.file.Path
@@ -19,25 +21,8 @@ final class Router private (gh: GraphHopper):
     * so that even low-scoring roads remain traversable.  Pass [[RouteParams.default]] for
     * equal infra/scenic weighting.
     */
-  // Any: Double values in string interpolation widen to Any via the s"" macro — safe here.
-  @SuppressWarnings(Array("org.wartremover.warts.Any"))
   def route(start: LatLon, end: LatLon, params: RouteParams): Either[RouteError, Route] =
-    val wI = params.infraWeight
-    val wS = params.scenicWeight
-    // GH 11.0 limits each priority expression to a single encoded value.
-    // We approximate the additive blend with two successive multipliers, one per EV.
-    // Each statement: floor 0.2 + (weight * EV), applied as (cqi_stmt) * (scenic_stmt).
-    // This is a multiplicative proxy for the additive blend: roads high on both axes
-    // score highest; roads low on either are penalised — which is the desired behaviour.
-    val cqiExpr    = s"0.2 + ${wI.toString} * cqi_quality"
-    val scenicExpr = s"0.2 + ${wS.toString} * scenic_quality"
-    val requestModel = CustomModel()
-      .addToPriority(Statement.If("true", Op.MULTIPLY, cqiExpr))
-      .addToPriority(Statement.If("true", Op.MULTIPLY, scenicExpr))
-    val req = GHRequest(start.lat, start.lon, end.lat, end.lon)
-      .setProfile(Router.ProfileName)
-      .setCustomModel(requestModel)
-      .setPathDetails(util.List.of("cqi_quality", "scenic_quality"))
+    val req = buildRequest(List(start, end), params)
     val rsp: GHResponse = gh.route(req)
     if rsp.hasErrors() then
       val errors = rsp.getErrors().nn
@@ -63,6 +48,42 @@ final class Router private (gh: GraphHopper):
           scenicDetails  = scenicDetails
         )
       )
+
+  // spike: drive GH round_trip for loop candidates (start == end case)
+  @SuppressWarnings(Array("org.wartremover.warts.Any"))
+  private[scenicroute] def routeLoop(start: LatLon, targetM: Double, seed: Long, params: RouteParams): Option[Double] =
+    val req = buildRequest(List(start), params)
+      .setAlgorithm(Algorithms.ROUND_TRIP)
+    req.getHints().nn
+      .putObject(Algorithms.RoundTrip.DISTANCE, targetM)
+      .putObject(Algorithms.RoundTrip.SEED, seed)
+      .putObject(Algorithms.RoundTrip.POINTS, 3)
+    val rsp = gh.route(req)
+    if rsp.hasErrors() then None
+    else Option(rsp.getBest()).map(_.nn.getDistance())
+
+  // spike: drive multi-point via A→via→B routing
+  private[scenicroute] def routeVia(start: LatLon, via: LatLon, end: LatLon, params: RouteParams): Option[Double] =
+    val req = buildRequest(List(start, via, end), params)
+    val rsp = gh.route(req)
+    if rsp.hasErrors() then None
+    else Option(rsp.getBest()).map(_.nn.getDistance())
+
+  // shared request builder (used by route(), routeLoop(), routeVia())
+  @SuppressWarnings(Array("org.wartremover.warts.Any"))
+  private def buildRequest(points: List[LatLon], params: RouteParams): GHRequest =
+    val wI = params.infraWeight
+    val wS = params.scenicWeight
+    val cqiExpr    = s"0.2 + ${wI.toString} * cqi_quality"
+    val scenicExpr = s"0.2 + ${wS.toString} * scenic_quality"
+    val requestModel = CustomModel()
+      .addToPriority(Statement.If("true", Op.MULTIPLY, cqiExpr))
+      .addToPriority(Statement.If("true", Op.MULTIPLY, scenicExpr))
+    val ghPoints = points.map(p => GHPoint(p.lat, p.lon))
+    GHRequest(ghPoints.asJava)
+      .setProfile(Router.ProfileName)
+      .setCustomModel(requestModel)
+      .setPathDetails(util.List.of("cqi_quality", "scenic_quality"))
 
 object Router:
   private val ProfileName = "bike"
