@@ -4,7 +4,7 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import com.graphhopper.util.details.PathDetail
 import io.circe.parser.decode
-import org.http4s.implicits.*
+import org.http4s.implicits._
 import org.http4s.{Method, Request, Response, Status}
 
 // Any: http4s Request/withEntity/uri builders surface Any in inferred types.

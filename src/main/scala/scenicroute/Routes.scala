@@ -2,13 +2,13 @@ package scenicroute
 
 import cats.effect.IO
 import org.http4s.HttpRoutes
-import sttp.tapir.*
-import sttp.tapir.generic.auto.*
-import sttp.tapir.json.circe.*
+import sttp.tapir._
+import sttp.tapir.generic.auto._
+import sttp.tapir.json.circe._
 import sttp.tapir.server.http4s.Http4sServerInterpreter
 
-/** tapir endpoints + http4s routing. Routing is injected as a function so the HTTP
-  * layer is testable without a GraphHopper graph.
+/** tapir endpoints + http4s routing. Routing is injected as a function so the HTTP layer is
+  * testable without a GraphHopper graph.
   */
 // Any: tapir's endpoint capabilities type parameter is `Any` (no streaming); the
 // DSL surfaces it in inferred types. Endpoints are otherwise fully typed.

@@ -23,7 +23,7 @@ class ApiTest extends munit.FunSuite:
   private val p2 = LatLon(52.51, 13.41)
 
   private val validParams = ParamsDto(0.5, 0.5, 0.85, 1.15, 4)
-  private val validReq     = RouteReq(PointDto(52.5, 13.4), PointDto(52.42, 13.65), 30.0, validParams)
+  private val validReq = RouteReq(PointDto(52.5, 13.4), PointDto(52.42, 13.65), 30.0, validParams)
 
   // ── wire decoding ───────────────────────────────────────────────────────────
 
@@ -58,13 +58,18 @@ class ApiTest extends munit.FunSuite:
     assert(Api.toDomain(validReq.copy(params = validParams.copy(numSuggestions = 6))).isLeft)
 
   test("toDomain rejects inverted tolerance bounds"):
-    assert(Api.toDomain(validReq.copy(params = validParams.copy(distanceToleranceLow = 1.2))).isLeft)
+    assert(
+      Api.toDomain(validReq.copy(params = validParams.copy(distanceToleranceLow = 1.2))).isLeft
+    )
 
   // ── toResponse ───────────────────────────────────────────────────────────────
 
   test("toResponse carries one dto per route, ranked, with gpx"):
     val resp = Api.toResponse(
-      List(mkRanked(1000.0, List(p1, p2), 0.6, 0.2, 0.4), mkRanked(1200.0, List(p2, p1), 0.5, 0.3, 0.3))
+      List(
+        mkRanked(1000.0, List(p1, p2), 0.6, 0.2, 0.4),
+        mkRanked(1200.0, List(p2, p1), 0.5, 0.3, 0.3)
+      )
     )
     assertEquals(resp.routes.size, 2)
     assertEquals(resp.routes.map(_.rank), List(1, 2))

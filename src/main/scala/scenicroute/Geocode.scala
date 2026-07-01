@@ -11,8 +11,8 @@ object GeoResult:
 
 object Geocode:
 
-  /** Parse a Nominatim jsonv2 response (array of objects with string lat/lon).
-    * Malformed entries are dropped; a non-array yields Nil.
+  /** Parse a Nominatim jsonv2 response (array of objects with string lat/lon). Malformed entries
+    * are dropped; a non-array yields Nil.
     */
   def parseNominatim(body: String): List[GeoResult] =
     parse(body).toOption
