@@ -1,6 +1,9 @@
 import wartremover.WartRemover.autoImport.*
 
 val scala3Version = "3.6.4"
+val tapirV        = "1.11.10"
+val http4sV       = "0.23.28"
+val circeV        = "0.14.10"
 
 lazy val root = (project in file("."))
   .settings(
@@ -23,10 +26,15 @@ lazy val root = (project in file("."))
 
     // ── dependencies ────────────────────────────────────────────────────────
     libraryDependencies ++= Seq(
-      "com.graphhopper" % "graphhopper-core"    % "11.0",
-      "com.graphhopper" % "graphhopper-web-api" % "11.0",
-      "org.tomlj"       % "tomlj"               % "1.1.1",
-      "org.scalameta"  %% "munit"               % "1.0.4" % Test
+      "com.graphhopper"              % "graphhopper-core"    % "11.0",
+      "com.graphhopper"              % "graphhopper-web-api" % "11.0",
+      "org.tomlj"                    % "tomlj"               % "1.1.1",
+      "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirV,
+      "com.softwaremill.sttp.tapir" %% "tapir-json-circe"    % tapirV,
+      "org.http4s"                  %% "http4s-ember-server" % http4sV,
+      "org.http4s"                  %% "http4s-ember-client" % http4sV,
+      "io.circe"                    %% "circe-parser"        % circeV,
+      "org.scalameta"               %% "munit"               % "1.0.4" % Test
     ),
 
     // ── WartRemover ─────────────────────────────────────────────────────────
