@@ -16,11 +16,17 @@ object Main:
     println(s"Demo: ${cfg.demoStart} → ${cfg.demoEnd}")
     println("Building / loading GraphHopper graph (this may take a few minutes on first run)...")
     val router = Router.fromOsm(Paths.get(cfg.pbfFile), Paths.get(cfg.graphCache), Paths.get(cfg.scoresFile))
-    println("Graph ready. Routing...")
-    router.route(cfg.demoStart, cfg.demoEnd, RouteParams.default) match
-      case Right(route) =>
-        println(s"Route found: ${route.distanceMeters.toInt} m, ${route.points.size} points")
-        route.points.headOption.foreach(p => println(s"  Start: $p"))
-        route.points.lastOption.foreach(p => println(s"  End:   $p"))
-      case Left(err) =>
-        println(s"Routing failed: ${err.errorMessage}")
+    println("Graph ready.")
+    val stockParams  = RouteParams(infraWeight = 0.0, scenicWeight = 0.0, gradientWeight = 0.0)
+    val scenicParams = RouteParams.default
+
+    def printRoute(label: String, params: RouteParams): Unit =
+      print(s"[$label] Routing... ")
+      router.route(cfg.demoStart, cfg.demoEnd, params) match
+        case Right(r) =>
+          println(s"${r.distanceMeters.toInt} m | cqi_quality=${f"${r.meanCqiQuality}%.3f"} scenic_quality=${f"${r.meanScenicQuality}%.3f"}")
+        case Left(e) =>
+          println(s"FAILED: ${e.errorMessage}")
+
+    printRoute("stock (wI=0, wS=0)", stockParams)
+    printRoute("scenic (wI=0.5, wS=0.5)", scenicParams)
