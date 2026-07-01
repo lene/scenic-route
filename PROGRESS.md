@@ -34,17 +34,24 @@ Test suite: 42/42 passing (sbt test)
   DistanceTargetTest:   8 tests  ← A→B in-window + loop in-window
 ```
 
-Berlin e2e (awaiting run — graph already built, no rebuild needed):
+Berlin e2e (verified 2026-07-01):
 ```
-[stock (wI=0, wS=0)]     22768 m | cqi=0.214 scenic=0.100
-[scenic (wI=0.5, wS=0.5)] 27902 m | cqi=0.685 scenic=0.277
+[stock (wI=0, wS=0)]      22768 m | cqi_quality=0.214 scenic_quality=0.100
+[scenic (wI=0.5, wS=0.5)] 27902 m | cqi_quality=0.685 scenic_quality=0.277
 
-Distance-target A→B demo (target 30 km):
-  N ranked routes, each within [25.5, 34.5] km, sorted by blended score
+Distance-target A→B demo (target 30 km) — window [25.5, 34.5] km:
+  1. 30272 m | score=0.465 | cqi=0.690 | scenic=0.240
+  2. 28130 m | score=0.464 | cqi=0.699 | scenic=0.230
+  3. 32110 m | score=0.457 | cqi=0.714 | scenic=0.199
+  4. 28927 m | score=0.456 | cqi=0.673 | scenic=0.240
 
-Loop demo (target 20 km):
-  N loop routes from Brandenburg Gate within [17.0, 23.0] km
+Loop demo (target 20 km from Brandenburg Gate) — window [17.0, 23.0] km:
+  1. 20888 m | score=0.443 | cqi=0.751 | scenic=0.135
+  2. 21075 m | score=0.434 | cqi=0.725 | scenic=0.143
+  3. 19152 m | score=0.427 | cqi=0.702 | scenic=0.151
+  4. 19432 m | score=0.418 | cqi=0.732 | scenic=0.103
 ```
+All 8 routes within tolerance. Sorted desc by blended score. 4 distinct routes each.
 
 ### Next step
 **Await human sign-off at CHECKPOINT 3b.** Do not start Phase 4 until approved.
