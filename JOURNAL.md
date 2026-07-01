@@ -97,3 +97,21 @@ Append-only. Discoveries, dead ends, gotchas, surprises. Distinct from DECISIONS
 **Integration test fixture reuse**: The `parallel.osm.xml` fixture (3 nodes, 3 ways — triangle graph) is sufficient for both A→B target-distance tests (via point snaps to node 12) and loop tests (GH round_trip traverses the triangle). No separate grid fixture needed.
 
 **`String` interpolation in `assert` messages**: `assert(cond, s"... ${expr}")` widens `expr` to `Any`, triggering the wart. Use a plain string literal as the message instead.
+
+---
+
+## 2026-07-01 Phase 4 — output (GPX + GeoJSON)
+
+**Locale landmine (the one that would silently ship broken files)**: the dev JVM default locale is German, so `String.format("%.6f", x)` / `f"$x%.6f"` emit `13,377` (comma) → invalid JSON and GPX. Fix: every numeric format goes through `String.format(Locale.ROOT, spec, Double.box(x))`. Guarded by a regression test that sets `Locale.setDefault(Locale.GERMANY)` (save/restore in `finally`) and asserts `.` decimals survive. Note the existing `f"..."` console prints in `Main` are *not* fixed — they're throwaway stdout, not files.
+
+**WartRemover `Any` on every string interpolation**: `StringContext.s` has signature `s(args: Any*)`, so *any* `s"...$x..."` (even interpolating a `String`) infers `Any` and trips the wart at the char after each `${...}`. That's why `Main`, `Router.route`, `ScoreStore.load` all carry an object/method-level `Any` suppression. A serialisation module is all interpolation → suppress `Any` once at the object level.
+
+**WartRemover `SeqApply` bans index access**: `Vector(i)` / `Seq(i)` are disabled (can throw `IndexOutOfBounds`). Use `.lift(i).getOrElse(default)` for a total lookup — used for the per-rank colour palette.
+
+**GeoJSON coordinate order is `[lon, lat]`** (RFC 7946), but `LatLon` is `(lat, lon)` — emit `p.lon` then `p.lat`. Verified: first Berlin coordinate serialises as `[13.377705, 52.51627]`. GPX `<trkpt>` uses named `lat`/`lon` attributes so order there is irrelevant.
+
+**`s.split(',')` (Char arg) is Scala, non-null; `s.split(",")` (String arg) is Java, nullable**: under `-Yexplicit-nulls` the Java `String.split(String)` returns `Array[String | Null] | Null`. The `StringOps.split(Char)` overload returns a plain `Array[String]`. Prefer the Char overload to avoid `.nn` noise. `String.trim()` is still Java-nullable, so `latS.trim.nn.toDoubleOption` needs the `.nn` before the `StringOps` extension applies.
+
+**`Paths.get` / `Files.writeString` / `Path.resolve` usable without `.nn`**: their Java returns come back as flexible (unchecked-null) types, so they pass straight into `Path`-typed positions and interpolation. Only `Files.writeString`'s returned `Path` needs discarding — bind it to `val _ =` for `-Wvalue-discard`.
+
+**e2e file shape (real Berlin graph)**: 4 tracks per file; A→B 30 km GPX ≈ 3119 `<trkpt>` / 147 KB, loop 20 km ≈ 2162 / 102 KB. Well-formedness confirmed by parsing GeoJSON with `json.load` and GPX with `xml.dom.minidom` — cheap, no new JVM test deps.

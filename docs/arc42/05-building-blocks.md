@@ -131,6 +131,35 @@ Both generators feed: `filterByDistance → rankAndSelect`.
 
 ---
 
+## Level 2: Output (Phase 4)
+
+### RouteExport
+
+Pure `String`-producing serialisers (no GraphHopper dependency, known-answer tested):
+
+- `toGeoJson(routes)` → one `FeatureCollection`; each route a `LineString`
+  `Feature` in **[lon, lat]** order (RFC 7946) with properties
+  `rank, distance_m, blended_score, mean_cqi, mean_scenic` plus simplestyle
+  `stroke` (per-rank colour) + `stroke-width` so geojson.io renders the ranked
+  set in distinct colours.
+- `toGpx(routes, name)` → one `<gpx version="1.1">` with one `<trk>` per route;
+  `<trkpt>` only (no `<ele>` — flat area, zero-weight gradient seam, SPEC §7.5).
+  Track name is XML-escaped.
+
+All numeric formatting is pinned to `Locale.ROOT`: the dev JVM default locale is
+German, where `%.6f` emits `13,377` and corrupts both formats (DECISIONS #28).
+
+### Main — CLI + file writing
+
+`main` parses positional args `<areaToml> <lat,lon> <lat,lon> <targetKm>`
+(`parseArgs` / `parseLatLon` — pure, `Option`-returning, range-checked). A valid
+request routes and writes the **combined** files
+`out/<area>/<mode>-<km>km.{geojson,gpx}` where `mode = loop | a2b` (loop when
+start ≈ end). Anything else falls back to the built-in Berlin demo, which now
+also writes its A→B (30 km) + loop (20 km) exports. `out/` is git-ignored.
+
+---
+
 ## Cross-cutting: WartRemover suppressions (Phase 2)
 
 | Location | Wart suppressed | Reason |

@@ -29,3 +29,7 @@ Chosen directions with one-line rationale. See JOURNAL.md for rejected paths.
 | 23 | **Distance tolerance `[0.85, 1.15]`** | SPEC §7.1 default; keeps routes within ±15% of target; stored in `RouteParams` for per-request override |
 | 24 | **N=4 suggestions, cap 5; dedupe threshold 0.7** | SPEC §7.3; Jaccard overlap of rounded lat/lon point sets; swap for edge-id sets if coarser granularity proves insufficient |
 | 25 | **Via fracs `{0.30, 0.40, 0.55, 0.70, 0.85}` × both sides = 10 vias** | Spike showed f>0.85 consistently overshoots (road overhead 30–60%); 10 vias gives 4–5 in-window candidates per request |
+| 26 | **Hand-rolled GPX + GeoJSON serialisers (no library)** | Both are plain text over a fixed, fully-controlled shape (~30 lines each); a JSON/GPX dep would buy nothing and violate the "no dependency you can't justify" rule (SPEC §8) |
+| 27 | **Combined-file layout: one `.geojson` (FeatureCollection, all N) + one `.gpx` (N `<trk>`)** | User choice; a single GeoJSON is ideal for the geojson.io eyeball check (SPEC §3), one GPX keeps the suggested set together |
+| 28 | **All numeric formatting pinned to `Locale.ROOT`** | Dev JVM default locale is German; unpinned `%.6f` emits `13,377` and produces invalid GeoJSON/GPX — regression-tested under `Locale.GERMANY` |
+| 29 | **CLI entry point: positional `<areaToml> <lat,lon> <lat,lon> <targetKm>`, output to `out/<area>/`** | User choice (real CLI args, not UI — SPEC §3); no/invalid args fall back to the demo; `out/` is a git-ignored build artefact |

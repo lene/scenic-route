@@ -1,67 +1,60 @@
 # Progress
 
-## Current phase: Phase 3 — Distance-target routing
+## Current phase: Phase 4 — Output (GPX + GeoJSON)
 
-### Status: **CHECKPOINT 3b COMPLETE — awaiting sign-off**
+### Status: **CHECKPOINT 4 COMPLETE — awaiting sign-off**
 
-### What's done (Phase 3)
+### What's done (Phase 4)
 
-- [x] Spike: `round_trip` + via-point sampling on Berlin graph; measured landing rates; `buildRequest` refactor
-- [x] `docs/phase3-proposal.md`: written, committed, approach confirmed at Checkpoint 3a
-- [x] `RouteParams` extended: `distanceToleranceLow=0.85`, `distanceToleranceHigh=1.15`, `numSuggestions=4`, `overlapThreshold=0.7`
-- [x] `RankedRoute(route, blendedScore)` case class
-- [x] `RouteSelection`: `filterByDistance`, `blendedScore`, `overlap` (Jaccard), `dedupe` (greedy), `rankAndSelect` (sort+dedupe+cap)
-- [x] `Router.buildRequest` / `extractRoute` refactored (done in spike)
-- [x] `Router.viaCandidates`: perpendicular-bisector via sampling, fracs `{0.30,0.40,0.55,0.70,0.85}` × 2 sides = 10 vias
-- [x] `Router.loopCandidates`: 12 seeds × GH `round_trip` algorithm
-- [x] `Router.routeWithTarget(start, end, targetKm, params)`: dispatch loop vs A→B → filter → rank
-- [x] `DistanceTargetTest`: A→B in [255,345]m ✓; loop in [510,690]m ✓; sorted; capped
-- [x] `Main.scala`: A→B 30km ranked demo + 20km loop demo from start point
-- [x] 42 Scala tests — all green
+- [x] `RouteExport.toGeoJson`: FeatureCollection, LineString `[lon,lat]`, rank/score
+      properties + simplestyle `stroke`; `Locale.ROOT` formatting
+- [x] `RouteExport.toGpx`: one `<gpx 1.1>` with N `<trk>`, XML-escaped name, no `<ele>`
+- [x] `Main.parseLatLon` / `parseArgs`: pure `Option`-returning CLI parsers, range-checked
+- [x] `Main` wired: CLI `<areaToml> <lat,lon> <lat,lon> <targetKm>` → routes → writes
+      `out/<area>/<mode>-<km>km.{geojson,gpx}`; no-arg falls back to the demo (also writes)
+- [x] `/out/` git-ignored; `docs/usage.md` added
+- [x] 60 Scala tests — all green
 
-### CHECKPOINT 3b evidence
+### CHECKPOINT 4 evidence
 
 ```
-Test suite: 42/42 passing (sbt test)
-  SmokeTest:            1 test
-  RouteParamsTest:      6 tests
-  ScoreStoreTest:       4 tests
-  AreaConfigTest:       2 tests
-  RouterTest:           4 tests
-  RouteSelectionTest:  12 tests  ← pure pipeline known-answer
-  ScenicEncodingTest:   2 tests
-  ScenicRoutingTest:    3 tests
-  DistanceTargetTest:   8 tests  ← A→B in-window + loop in-window
+Test suite: 60/60 passing (sbt test)
+  + RouteExportTest:  10 tests  ← GeoJSON/GPX known-answer incl. German-locale regression
+  + MainCliTest:       8 tests  ← parseLatLon / parseArgs
+  (existing 42 unchanged)
 ```
 
-Berlin e2e (verified 2026-07-01):
+Berlin e2e (verified 2026-07-01, real graph, CLI-arg path):
 ```
-[stock (wI=0, wS=0)]      22768 m | cqi_quality=0.214 scenic_quality=0.100
-[scenic (wI=0.5, wS=0.5)] 27902 m | cqi_quality=0.685 scenic_quality=0.277
+$ runMain scenicroute.Main areas/berlin.toml 52.5163,13.3777 52.4275,13.6517 30
+  a2b ranked routes (target 30.0 km): 4 routes → Wrote out/berlin/a2b-30km.{geojson,gpx}
+$ runMain scenicroute.Main areas/berlin.toml 52.5163,13.3777 52.5163,13.3777 20
+  loop ranked routes (target 20.0 km): 4 routes → Wrote out/berlin/loop-20km.{geojson,gpx}
 
-Distance-target A→B demo (target 30 km) — window [25.5, 34.5] km:
-  1. 30272 m | score=0.465 | cqi=0.690 | scenic=0.240
-  2. 28130 m | score=0.464 | cqi=0.699 | scenic=0.230
-  3. 32110 m | score=0.457 | cqi=0.714 | scenic=0.199
-  4. 28927 m | score=0.456 | cqi=0.673 | scenic=0.240
-
-Loop demo (target 20 km from Brandenburg Gate) — window [17.0, 23.0] km:
-  1. 20888 m | score=0.443 | cqi=0.751 | scenic=0.135
-  2. 21075 m | score=0.434 | cqi=0.725 | scenic=0.143
-  3. 19152 m | score=0.427 | cqi=0.702 | scenic=0.151
-  4. 19432 m | score=0.418 | cqi=0.732 | scenic=0.103
+Well-formedness (python json.load + xml.dom.minidom):
+  a2b-30km.geojson  — 4 features, first coord [13.377705, 52.51627] (lon,lat), 69.5 KB
+  loop-20km.geojson — 4 features, 48.4 KB
+  a2b-30km.gpx      — 4 trk, 3119 trkpt, dot decimals, 147 KB
+  loop-20km.gpx     — 4 trk, 2162 trkpt, 102 KB
+  ALL FILES WELL-FORMED
 ```
-All 8 routes within tolerance. Sorted desc by blended score. 4 distinct routes each.
 
 ### Next step
-**Await human sign-off at CHECKPOINT 3b.** Do not start Phase 4 until approved.
+**Await human sign-off at CHECKPOINT 4.** This is the last v1 phase — after sign-off
+the SPEC §10 definition-of-done is met (ranked scenic routes near target, exportable
+as GPX + GeoJSON, tunable per request).
 
 ### Blocked on
-Sign-off from human before Phase 4 (GPX + GeoJSON export).
+Sign-off from human to close Phase 4 / v1.
 
 ---
 
 ## Previous phases
+
+### Phase 3 — Distance-target routing (COMPLETE, signed off)
+- 42 Scala tests green; via-sampling A→B + native round_trip loops → filter/rank/dedupe
+- Berlin e2e: 4 A→B routes in [25.5,34.5] km, 4 loops in [17.0,23.0] km, score-ranked
+- Tag: `phase-3-complete`
 
 ### Phase 2 — Score-aware routing (COMPLETE, signed off)
 - 18 Scala tests green; EV round-trip verified; routing preference verified
