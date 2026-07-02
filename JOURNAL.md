@@ -115,3 +115,21 @@ Append-only. Discoveries, dead ends, gotchas, surprises. Distinct from DECISIONS
 **`Paths.get` / `Files.writeString` / `Path.resolve` usable without `.nn`**: their Java returns come back as flexible (unchecked-null) types, so they pass straight into `Path`-typed positions and interpolation. Only `Files.writeString`'s returned `Path` needs discarding — bind it to `val _ =` for `-Wvalue-discard`.
 
 **e2e file shape (real Berlin graph)**: 4 tracks per file; A→B 30 km GPX ≈ 3119 `<trkpt>` / 147 KB, loop 20 km ≈ 2162 / 102 KB. Well-formedness confirmed by parsing GeoJSON with `json.load` and GPX with `xml.dom.minidom` — cheap, no new JVM test deps.
+
+---
+
+## 2026-07-02 V2 Milestone A — backend API (http4s + tapir + circe)
+
+**Stack pins for Scala 3.6.4**: tapir 1.11.10, http4s 0.23.28 (ember), circe 0.14.10 resolve cleanly together (cats-effect 3). tapir-json-circe supplies `Schema[io.circe.Json]`, so a `RouteResp` carrying a raw `Json` GeoJSON field derives its tapir Schema via `generic.auto` without hand-writing one.
+
+**circe semiauto derivation is WartRemover-clean**: `deriveDecoder`/`deriveEncoder` in companion objects produced zero warts. The friction is elsewhere (below).
+
+**WartRemover `Any` on tapir/http4s builders**: tapir's endpoint capabilities type parameter is `Any` (no streaming), and http4s `Request/withEntity/uri` builders surface `Any` in inferred types. Both trip `Wart.Any`. Suppress once at the object/class level (`Routes`, `Server`, `RoutesTest`) — the endpoints/handlers are otherwise fully typed. Same pattern as `Main`/`RouteExport` for interpolation.
+
+**scalafix `NoValInForComprehension` bans `x = expr` inside a for**: cats-effect `for { cfg = load(); ... }` value bindings are rejected. Wrap synchronous heavy work in `IO.blocking(...)` and bind with `<-`; build non-effect helpers (e.g. `routeFn`) as `val`s inside the `.use { ... }` block, not as for-bindings.
+
+**`useForever` is `IO[Nothing]` → `Wart.Nothing`**: binding `_ <- server...useForever` infers Nothing. Append `.void` to get `IO[Unit]`. (Same family as the `Left(x)`/`Vector.empty` Nothing warts — annotate the value's type.)
+
+**HTTP layer testable without a graph**: injecting routing as `RouteFn = (LatLon,LatLon,Double,RouteParams) => Seq[RankedRoute]` and geocoding as `GeocodeFn = String => IO[List[GeoResult]]` lets `RoutesTest` drive the real tapir/http4s stack in-memory (`app.run(request)`) with stubs — no GraphHopper, no network. `Server` is the only untested piece (composition root), verified by a live boot + curl.
+
+**Nominatim**: returns `lat`/`lon` as JSON **strings** (not numbers) → parse via `.toDoubleOption`. Live call needs a real `User-Agent` (usage policy); wrap the client call in `.handleError(_ => Nil)` so a geocoder hiccup degrades to "no matches" rather than a 500.
