@@ -6,11 +6,15 @@ val http4sV       = "0.23.28"
 val circeV        = "0.14.10"
 
 lazy val root = (project in file("."))
+  .enablePlugins(JavaAppPackaging)
   .settings(
     name         := "scenic-route",
     organization := "dev.scenicroute",
     version      := "0.1.0-SNAPSHOT",
     scalaVersion := scala3Version,
+
+    // Server is the packaged/`docker` entry point; `runMain scenicroute.Main` still runs the CLI.
+    Compile / mainClass := Some("scenicroute.Server"),
 
     // ── strict compiler flags (compensate for partial Scala 3 WartRemover) ──
     scalacOptions ++= Seq(

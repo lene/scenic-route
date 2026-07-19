@@ -1,0 +1,24 @@
+# Local full-stack run: nginx-served frontend + JVM routing backend.
+# Backend must be packaged first:  sbt stage
+# Then:                            docker compose up --build
+# Open:                            http://localhost:8080
+services:
+  backend:
+    build: .
+    environment:
+      SCENIC_AREA: areas/berlin.toml
+      SCENIC_PORT: "8080"
+      JAVA_OPTS: -Xmx2g
+    volumes:
+      - ./areas:/app/areas:ro
+      - ./data:/app/data:ro
+      - ./graph-cache:/app/graph-cache # rw: GraphHopper takes a lock file in the graph dir
+    expose:
+      - "8080"
+
+  web:
+    build: ./web
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend

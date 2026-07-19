@@ -31,12 +31,18 @@ Human gate:   in a browser vs the local API — set two points (or search), pick
 
 ### To run the full stack locally (for the browser acceptance)
 ```
-# terminal 1 — backend on the Berlin graph (graph-cache/berlin present)
-sbt "runMain scenicroute.Server"          # :8080, ~18s boot
+# Option A — Docker (single origin, matches deploy). nginx serves the app and
+# reverse-proxies the API to the JVM backend; graph/data/areas mounted as volumes.
+sbt stage                                   # package backend → target/universal/stage
+docker compose up --build                   # open http://localhost:8080
 
-# terminal 2 — frontend dev server (proxies to :8080)
-cd web ; npm run dev                        # :5173
+# Option B — dev servers
+sbt "runMain scenicroute.Server"            # :8080 backend, ~18s boot
+cd web ; npm run dev                        # :5173 frontend (Vite proxy → :8080)
 ```
+Docker stack **verified live**: `/health` ok · `/geocode` 5 hits · `POST /routes` 200 in ~3.5s
+(GeoJSON + per-route GPX) · SPA served at `:8080`. (Dockerfiles are a Milestone C
+deliverable, pulled forward here to run the browser acceptance.)
 
 ### Next step
 **Await sign-off at CHECKPOINT V2b**, then start **Milestone C — PWA + deploy + docs**

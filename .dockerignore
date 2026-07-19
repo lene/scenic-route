@@ -1,0 +1,8 @@
+# Keep the backend build context small: only target/universal/stage is needed.
+.git/
+data/
+graph-cache/
+target/scala-3.6.4/
+target/streams/
+web/node_modules/
+web/dist/
