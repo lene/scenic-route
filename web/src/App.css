@@ -1,0 +1,143 @@
+.app {
+  display: flex;
+  height: 100%;
+}
+
+.sidebar {
+  width: 340px;
+  flex: 0 0 340px;
+  overflow-y: auto;
+  padding: 16px;
+  box-sizing: border-box;
+  border-right: 1px solid #ddd;
+}
+
+.map {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sidebar h1 {
+  font-size: 1.25rem;
+  margin: 0 0 12px;
+}
+
+.search {
+  display: flex;
+  gap: 6px;
+}
+.search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 8px;
+}
+
+fieldset {
+  margin: 14px 0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+fieldset label {
+  display: block;
+  margin: 8px 0;
+}
+fieldset input[type='range'],
+fieldset input[type='number'] {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+}
+label.loop,
+fieldset label:has(input[type='radio']),
+fieldset label:has(input[type='checkbox']) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 6px 0;
+}
+
+.results {
+  list-style: none;
+  margin: 6px 0;
+  padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid #eee;
+}
+.results button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border: none;
+  border-bottom: 1px solid #eee;
+  background: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.results button:hover {
+  background: #f2f6ff;
+}
+
+button.find {
+  width: 100%;
+  padding: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+button.find:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.err {
+  color: #c62828;
+  font-size: 0.85rem;
+}
+
+.routes {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+}
+.route {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+.route.selected {
+  border-color: #333;
+  background: #fafafa;
+}
+.route .swatch {
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+.route .meta {
+  flex: 1 1 auto;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+.route .gpx {
+  flex: 0 0 auto;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 4px 6px;
+}

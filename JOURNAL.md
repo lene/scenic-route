@@ -133,3 +133,23 @@ Append-only. Discoveries, dead ends, gotchas, surprises. Distinct from DECISIONS
 **HTTP layer testable without a graph**: injecting routing as `RouteFn = (LatLon,LatLon,Double,RouteParams) => Seq[RankedRoute]` and geocoding as `GeocodeFn = String => IO[List[GeoResult]]` lets `RoutesTest` drive the real tapir/http4s stack in-memory (`app.run(request)`) with stubs — no GraphHopper, no network. `Server` is the only untested piece (composition root), verified by a live boot + curl.
 
 **Nominatim**: returns `lat`/`lon` as JSON **strings** (not numbers) → parse via `.toDoubleOption`. Live call needs a real `User-Agent` (usage policy); wrap the client call in `.handleError(_ => Nil)` so a geocoder hiccup degrades to "no matches" rather than a 500.
+
+## 2026-07-19 — V2 Milestone B (Frontend MVP)
+
+**jsdom + `@testing-library/jest-dom`**: importing the bare `@testing-library/jest-dom` in the vitest setup throws `expect is not defined` (it calls `expect.extend` at import against a global that vitest doesn't expose unless `globals:true`). Use the vitest entrypoint `@testing-library/jest-dom/vitest` instead — it wires the matchers into vitest's own `expect`.
+
+**jsdom `Blob` has no `.text()`/`.arrayBuffer()`**: asserting GPX content via `await blob.text()` fails with `b.text is not a function`. Assert `blob.type` + `blob.size` (which jsdom does implement) instead; content correctness of the GPX itself is already covered by the Scala `RouteExportTest`.
+
+**MapLibre needs WebGL → can't render in jsdom**: `MapView` can't be unit-tested (no canvas/WebGL). Kept the map logic thin and pushed all testable logic into pure modules (`params`/`api`/`gpx`) + a `Sidebar` component test (the `canFind` branch). The map round-trip is the human's checkpoint acceptance.
+
+**Marker `dragend` handler leak**: a `syncMarker` that re-attaches `marker.on('dragend', …)` on every render accumulates handlers → one drag fires N callbacks. Bind the handler **once at marker creation** and keep the drag callbacks stable (`useCallback([])` in `App`) so a persisting marker never needs re-binding.
+
+**Once-bound map `click` vs. fresh state**: MapLibre's `map.on('click')` is bound once at init, so a captured React handler goes stale. Store the latest callback in a ref (`clickCb.current = props.onMapClick` each render) and call `clickCb.current(...)` from the bound listener.
+
+**`import.meta.env` under strict `tsc`**: needs `/// <reference types="vite/client" />` (added as `src/vite-env.d.ts`) or `tsc -b` errors on `VITE_API_BASE`.
+
+**`@types/geojson` is transitive via `maplibre-gl`**: the global `GeoJSON` namespace (e.g. `GeoJSON.FeatureCollection`) is already available — no need to add the dep. Our own minimal `GeoJson` wire type is cast to it at the MapLibre `setData` boundary.
+
+**Bundle size**: MapLibre pushes the JS bundle to ~956 KB (267 KB gzip); Vite warns >500 KB. Acceptable for a personal tool over LAN. `// ponytail:` code-split MapLibre via dynamic `import()` only if first-load latency bites.
+
+**Param mapping is where the two validators must agree**: `toParamsDto` is built so its output *always* passes `Api.toParams` (low = 1−p with p capped at 0.9 so low ∈ [0.1,1]; high = 1+p ≥ 1; low ≤ high; suggestions rounded+clamped to [1,5]). The frontend test asserts the band invariants directly so drift from the backend rules fails a unit test, not a live request.

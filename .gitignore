@@ -18,6 +18,13 @@ hs_err_pid*
 # Exported route artefacts (GPX + GeoJSON) — build output, not source
 /out/
 
+# Web frontend
+web/node_modules/
+web/dist/
+web/dev-dist/
+web/.vite/
+web/*.tsbuildinfo
+
 # Python
 __pycache__/
 *.pyc
