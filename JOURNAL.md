@@ -171,3 +171,13 @@ Append-only. Discoveries, dead ends, gotchas, surprises. Distinct from DECISIONS
 **Adding a required field to a wire DTO breaks every hardcoded JSON fixture**: the new `ParamsDto.doubledPenaltyWeight` made `RoutesTest`/`ApiTest`'s literal request JSON fail to decode (missing field → 400 / decode-Left). Grep every `ParamsDto(`/`RouteParams(` positional construction and every hardcoded params JSON string when widening a DTO. Backward-compat held on the metric itself: existing straight-line test routes have `doubledFraction = 0` → penalty factor 1 → unchanged scores.
 
 **Soft penalty > hard reject for this**: a hard filter on doubling returns nothing when every candidate is an out-and-back (dead-end start, narrow tolerance); the multiplicative `score × (1 − w·fraction)` with w,fraction ∈ [0,1] keeps the score non-negative, auto-demotes doubled routes to last, and still returns the least-bad — no fallback branch needed.
+
+## 2026-07-20 — Penalty had to gate *membership*, not just rank
+
+**A re-ranking penalty can't change which routes come back.** The #30 soft penalty re-scored a candidate pool that is already ≈ `numSuggestions` after `filterByDistance`+`dedupe` — so live testing showed the *same* routes at every slider setting, only re-ordered/re-scored (user caught this). Two fixes, both needed:
+- **Attack generation**: A→B `viaCandidates` now sets GH's `Parameters.Routing.PASS_THROUGH` hint so a `start→via→end` request continues *through* the via instead of the cheapest answer (ride to via, U-turn, retrace). This removes most doubling at the source. Loops (`round_trip`) were already clean (live fractions 0.001–0.009) — untouched.
+- **Gate membership**: `rankAndSelect` drops candidates with `doubledFraction > maxDoubled(w) = 1 − 0.7·w` *before* ranking, with a keep-all fallback if that empties the pool. Reuses the existing `doubledPenaltyWeight` — no new param. Now the slider changes the returned set, not just its order.
+
+**`Wart.Overloading` AND `Wart.DefaultArguments` are both on.** Wanted a `blendedScore` overload taking a precomputed fraction (compute once, not twice); overloading is banned, and the fallback of a default arg (`doubled: Double = …`) is *also* banned. Solution: a distinctly-named private `scoreWith(route, params, doubled)` that the public `blendedScore(route, params)` delegates to. `rankAndSelect` pairs each route with its fraction once (`routes.map(r => (r, doubledFraction(r)))`), filters on `_._2`, and scores via `scoreWith`.
+
+**GH `pass_through` on the tiny test fixture didn't break routing** — `DistanceTargetTest` (parallel.osm.xml, 3 nodes) stayed green with the hint set. Scala-3 parameter untupling lets `pool.map((r, f) => …)` consume a `Seq[(Route, Double)]` directly (no `case`).

@@ -44,15 +44,20 @@ Docker stack **verified live**: `/health` ok · `/geocode` 5 hits · `POST /rout
 (GeoJSON + per-route GPX) · SPA served at `:8080`. (Dockerfiles are a Milestone C
 deliverable, pulled forward here to run the browser acceptance.)
 
-### Follow-on fix (post-V2b, on top of the MVP): out-and-back penalty
+### Follow-on fix (post-V2b, on top of the MVP): out-and-back handling
 Live V2b testing showed the router padding distance by riding roads out-and-back.
-Added `RouteSelection.doubledFraction` (geometry-derived self-overlap, no edge IDs)
-folded softly into `blendedScore` (`doubledPenaltyWeight`, default 0.8), exposed as
-an "Avoid backtracking" UI slider. DECISIONS #30.
-- 84 Scala tests (was 76) + 16 web tests (was 15); all lint gates green.
-- **Live-proven** on the Docker stack: same A→B request, top-route doubled-fraction
-  `0.655 → 0.006` when the penalty is switched 0.0 → 0.8 (out-and-backs demoted #1→#4,
-  clean loops promoted to top; score math exact: `0.45·(1−0.8·0.655)=0.214`).
+Two commits:
+1. **Penalty** (DECISIONS #30): `RouteSelection.doubledFraction` (geometry-derived
+   self-overlap, no edge IDs) folded softly into `blendedScore` (`doubledPenaltyWeight`,
+   default 0.8), exposed as an "Avoid backtracking" UI slider.
+2. **Membership gate** (DECISIONS #31): the penalty only *re-ranked* a fixed pool, so
+   the same routes came back at every slider setting (user-caught). Fixed at generation
+   (A→B `viaCandidates` sets GH `pass_through` → no U-turn at the via) and selection
+   (`rankAndSelect` drops routes above `maxDoubled(w)=1−0.7w`, keep-all fallback).
+- 87 Scala tests (was 76) + 16 web tests (was 15); all lint gates green.
+- **Live-proven** on the Docker stack: same A→B request, the returned *set* changes
+  `{5 routes incl. .599/.644 doubled} → {3 clean routes, max .289}` as the slider goes
+  0.0 → 0.8 — out-and-backs dropped from the set, not merely re-ordered.
 
 ### Next step
 **Await sign-off at CHECKPOINT V2b**, then start **Milestone C — PWA + deploy + docs**

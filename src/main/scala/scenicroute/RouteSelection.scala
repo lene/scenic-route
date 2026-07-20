@@ -41,9 +41,18 @@ object RouteSelection:
         doubled / total
 
   def blendedScore(route: Route, params: RouteParams): Double =
+    scoreWith(route, params, doubledFraction(route))
+
+  // Takes a precomputed doubledFraction so rankAndSelect computes it once per route
+  // rather than twice (once for the cap, once for the score).
+  private def scoreWith(route: Route, params: RouteParams, doubled: Double): Double =
     val quality =
       params.infraWeight * route.meanCqiQuality + params.scenicWeight * route.meanScenicQuality
-    quality * (1.0 - params.doubledPenaltyWeight * doubledFraction(route))
+    quality * (1.0 - params.doubledPenaltyWeight * doubled)
+
+  // Membership gate: the higher the penalty weight, the lower the tolerated doubling.
+  // w=0 → 1.0 (keep everything); w=0.8 → 0.44; w=1 → 0.3.
+  private def maxDoubled(penaltyWeight: Double): Double = 1.0 - 0.7 * penaltyWeight
 
   // ponytail: rounded-point Jaccard; swap for edge-id sets if too coarse
   @SuppressWarnings(Array("org.wartremover.warts.Any"))
@@ -64,7 +73,12 @@ object RouteSelection:
       .reverse
 
   def rankAndSelect(routes: Seq[Route], params: RouteParams): List[RankedRoute] =
-    val scored  = routes.map(r => RankedRoute(r, blendedScore(r, params)))
+    val withFraction = routes.map(r => (r, doubledFraction(r)))
+    val cap          = maxDoubled(params.doubledPenaltyWeight)
+    val kept         = withFraction.filter(_._2 <= cap)
+    // Never return an empty set just because every candidate doubles (dead-end starts).
+    val pool    = if kept.isEmpty then withFraction else kept
+    val scored  = pool.map((r, f) => RankedRoute(r, scoreWith(r, params, f)))
     val sorted  = scored.sortBy(-_.blendedScore).toList
     val deduped = dedupe(sorted, params.overlapThreshold)
     deduped.take(math.min(params.numSuggestions, 5))

@@ -38,7 +38,10 @@ Two combined files land under `out/<area>/`:
 
 Routes are ranked by a blended CQI/scenic score, kept within ±15% of the target
 distance, and de-duplicated so the set isn't near-identical clones. Rides that pad
-their distance by going out along a road and back are penalized (`doubledPenaltyWeight`,
-default 0.8) so real loops rank above out-and-backs. The scoring weights, tolerances,
-and backtracking penalty are per-request knobs (`RouteParams`) and need no graph
-rebuild to change; the web UI exposes the penalty as an "Avoid backtracking" slider.
+their distance by going out along a road and back are avoided at two levels: A→B
+candidates are generated with GraphHopper's `pass_through` hint (no U-turn at the via),
+and the ranker penalizes *and*, at higher `doubledPenaltyWeight` (default 0.8),
+**excludes** routes that still double back. The scoring weights, tolerances, and
+backtracking penalty are per-request knobs (`RouteParams`) and need no graph rebuild to
+change; the web UI exposes the penalty as an "Avoid backtracking" slider that changes
+which routes come back, not just their order.

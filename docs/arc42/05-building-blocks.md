@@ -107,16 +107,22 @@ blendedScore(route, params) = (infraWeight·meanCqiQuality + scenicWeight·meanS
                               · (1 − doubledPenaltyWeight · doubledFraction(route))
 overlap(a, b) = Jaccard of rounded lat/lon point sets (ponytail: swap for edge-id sets if too coarse)
 dedupe(ranked, threshold) = greedy in rank order; drop if overlap > threshold with any kept route
-rankAndSelect(routes, params) = score → sort desc → dedupe → take min(numSuggestions, 5)
+maxDoubled(w) = 1 − 0.7·w                         (membership cap from the penalty weight)
+rankAndSelect(routes, params) =
+    drop routes with doubledFraction > maxDoubled(doubledPenaltyWeight)   [fallback: keep all if that empties the pool]
+    → score → sort desc → dedupe → take min(numSuggestions, 5)
 ```
 
 **`doubledFraction`** detects out-and-back rides (a road ridden out then back to pad
 distance). Since `Route` carries no edge/way IDs, it works from `points`: consecutive
 segments are snapped to a ~1e-5° grid and direction-normalised into keys; a key seen
 ≥2× is doubled, and its length (via GraphHopper `DistanceCalcEarth`) counts toward the
-numerator. The result multiplies into `blendedScore` as a soft penalty
-(`doubledPenaltyWeight`, default 0.8, 0 disables) — a pure out-and-back is demoted to
-last but still returned as a fallback when nothing cleaner exists.
+numerator. It feeds selection two ways: a **soft penalty** (multiplied into
+`blendedScore`) *and* a **membership cap** (`maxDoubled`) so a high penalty weight
+*excludes* doubled routes rather than merely re-ordering a fixed pool — re-ordering
+alone can't change the returned set once it's ≈ `numSuggestions`. The cap has a fallback:
+if it would empty the pool (dead-end start where every option doubles), all candidates
+are kept. `doubledPenaltyWeight` default 0.8 → cap 0.44; 0 disables both penalty and cap.
 
 ### RankedRoute
 
@@ -130,7 +136,9 @@ Dispatches on `start == end`:
 - **Loop** (`start == end`): `loopCandidates` — 12 seeds × GH `round_trip` algorithm.
   Single-point request; `Parameters.Algorithms.ROUND_TRIP` + hints `DISTANCE`, `SEED`, `POINTS`.
 - **A→B** (`start ≠ end`): `viaCandidates` — perpendicular-bisector via sampling.
-  Fracs `{0.30, 0.40, 0.55, 0.70, 0.85}` × both sides = 10 vias; route `start → via → end`.
+  Fracs `{0.30, 0.40, 0.55, 0.70, 0.85}` × both sides = 10 vias; route `start → via → end`
+  with the `pass_through` hint set, so GH continues *through* the via instead of
+  U-turning and retracing (the main source of out-and-back padding).
   Via offset: `h = sqrt((T/2)² − (D/2)²)` where T=target, D=straight-line distance.
 
 Both generators feed: `filterByDistance → rankAndSelect`.

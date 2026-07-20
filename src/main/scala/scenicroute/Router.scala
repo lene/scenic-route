@@ -3,10 +3,10 @@ package scenicroute
 import com.graphhopper.config.{LMProfile, Profile}
 import com.graphhopper.json.Statement
 import com.graphhopper.json.Statement.Op
-import com.graphhopper.util.CustomModel
 import com.graphhopper.util.Parameters.Algorithms
 import com.graphhopper.util.details.PathDetail
 import com.graphhopper.util.shapes.GHPoint
+import com.graphhopper.util.{CustomModel, Parameters}
 import com.graphhopper.{GHRequest, GHResponse, GraphHopper, GraphHopperConfig}
 
 import java.nio.file.Path
@@ -62,6 +62,9 @@ final class Router private (gh: GraphHopper):
       if rsp.hasErrors() then None
       else Option(rsp.getBest()).map(_ => extractRoute(rsp))
 
+  // pass_through forbids the U-turn at the via, so GH continues *through* it instead of
+  // riding out and straight back — attacking distance-padding out-and-backs at the source.
+  @SuppressWarnings(Array("org.wartremover.warts.Any"))
   private def viaCandidates(
       start: LatLon,
       end: LatLon,
@@ -69,7 +72,9 @@ final class Router private (gh: GraphHopper):
       params: RouteParams
   ): Seq[Route] =
     computeVias(start, end, targetM).flatMap: via =>
-      val rsp = gh.route(buildRequest(List(start, via, end), params))
+      val req = buildRequest(List(start, via, end), params)
+      val _   = req.getHints().nn.putObject(Parameters.Routing.PASS_THROUGH, true)
+      val rsp = gh.route(req)
       if rsp.hasErrors() then None
       else Option(rsp.getBest()).map(_ => extractRoute(rsp))
 

@@ -173,7 +173,10 @@ export default function Sidebar(p: Props) {
             value={p.avoidBacktracking}
             onChange={(e) => p.onSetAvoidBacktracking(Number(e.target.value))}
           />
-          <span className="hint">Penalize riding a road out and back within one route.</span>
+          <span className="hint">
+            Penalize riding a road out and back within one route; high values exclude such
+            routes entirely.
+          </span>
         </label>
       </fieldset>
 

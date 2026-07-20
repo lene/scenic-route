@@ -98,6 +98,28 @@ class RouteSelectionTest extends munit.FunSuite:
     // quality only: 0.5*0.6 + 0.5*0.6 = 0.6
     assertEqualsDouble(RouteSelection.blendedScore(doubled, noPenalty), 0.6, 0.001)
 
+  test("rankAndSelect drops a doubled route entirely at high penalty weight"):
+    // doubled has higher quality, but fraction 1.0 > cap(0.8) = 0.44 → filtered out
+    val clean   = mkRoute(1000.0, List(p1, p2, p3, p4), 0.5, 0.5)
+    val doubled = mkRoute(1000.0, List(p1, p2, p3, p2, p1), 0.9, 0.9)
+    val result = RouteSelection.rankAndSelect(List(doubled, clean), params.copy(numSuggestions = 1))
+    result.map(_.route.points) match
+      case pts :: Nil => assertEquals(pts, List(p1, p2, p3, p4))
+      case _          => fail("expected exactly the clean route")
+
+  test("rankAndSelect keeps the doubled route when the penalty weight is 0"):
+    val clean   = mkRoute(1000.0, List(p1, p2, p3, p4), 0.5, 0.5)
+    val doubled = mkRoute(1000.0, List(p1, p2, p3, p2, p1), 0.9, 0.9)
+    val noPen   = params.copy(doubledPenaltyWeight = 0.0, numSuggestions = 1)
+    RouteSelection.rankAndSelect(List(doubled, clean), noPen).map(_.route.points) match
+      case pts :: Nil => assertEquals(pts, List(p1, p2, p3, p2, p1))
+      case _          => fail("expected exactly the doubled route")
+
+  test("rankAndSelect falls back to doubled routes when nothing cleaner exists"):
+    val doubled = mkRoute(1000.0, List(p1, p2, p3, p2, p1), 0.6, 0.6)
+    val strict  = params.copy(doubledPenaltyWeight = 1.0)
+    assert(RouteSelection.rankAndSelect(List(doubled), strict).nonEmpty)
+
   test("rankAndSelect ranks a clean loop above an equal-quality out-and-back"):
     val clean   = mkRoute(1000.0, List(p1, p2, p3, p4), 0.6, 0.6)
     val doubled = mkRoute(1000.0, List(p1, p2, p3, p2, p1), 0.6, 0.6)
