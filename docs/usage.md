@@ -37,6 +37,8 @@ Two combined files land under `out/<area>/`:
 `<mode>` is `loop` when start ≈ end, otherwise `a2b`.
 
 Routes are ranked by a blended CQI/scenic score, kept within ±15% of the target
-distance, and de-duplicated so the set isn't near-identical clones. The scoring
-weights and tolerances are per-request knobs (`RouteParams`) and need no graph
-rebuild to change.
+distance, and de-duplicated so the set isn't near-identical clones. Rides that pad
+their distance by going out along a road and back are penalized (`doubledPenaltyWeight`,
+default 0.8) so real loops rank above out-and-backs. The scoring weights, tolerances,
+and backtracking penalty are per-request knobs (`RouteParams`) and need no graph
+rebuild to change; the web UI exposes the penalty as an "Avoid backtracking" slider.

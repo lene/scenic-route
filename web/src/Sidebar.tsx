@@ -16,6 +16,7 @@ interface Props {
   balance: number
   tolerancePct: number
   numSuggestions: number
+  avoidBacktracking: number
   routes: RouteDto[]
   selectedRank: number | null
   loading: boolean
@@ -26,6 +27,7 @@ interface Props {
   onSetBalance: (v: number) => void
   onSetTolerance: (v: number) => void
   onSetSuggestions: (v: number) => void
+  onSetAvoidBacktracking: (v: number) => void
   onPickPlace: (p: Point) => void
   onFind: () => void
   onSelectRoute: (rank: number | null) => void
@@ -160,6 +162,18 @@ export default function Sidebar(p: Props) {
             value={p.numSuggestions}
             onChange={(e) => p.onSetSuggestions(Number(e.target.value))}
           />
+        </label>
+        <label>
+          Avoid backtracking: <strong>{Math.round(p.avoidBacktracking * 100)}%</strong>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.1}
+            value={p.avoidBacktracking}
+            onChange={(e) => p.onSetAvoidBacktracking(Number(e.target.value))}
+          />
+          <span className="hint">Penalize riding a road out and back within one route.</span>
         </label>
       </fieldset>
 

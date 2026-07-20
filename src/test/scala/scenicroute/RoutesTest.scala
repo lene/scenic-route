@@ -32,7 +32,7 @@ class RoutesTest extends munit.FunSuite:
   private val validJson =
     """{"start":{"lat":52.5,"lon":13.4},"end":{"lat":52.42,"lon":13.65},"targetKm":30,
        |"params":{"infraWeight":0.5,"scenicWeight":0.5,"distanceToleranceLow":0.85,
-       |"distanceToleranceHigh":1.15,"numSuggestions":4}}""".stripMargin
+       |"distanceToleranceHigh":1.15,"numSuggestions":4,"doubledPenaltyWeight":0.8}}""".stripMargin
 
   private val geoStub: Routes.GeocodeFn =
     _ => IO.pure(List(GeoResult("Brandenburger Tor", 52.5162746, 13.3777041)))

@@ -17,7 +17,8 @@ final case class ParamsDto(
     scenicWeight: Double,
     distanceToleranceLow: Double,
     distanceToleranceHigh: Double,
-    numSuggestions: Int
+    numSuggestions: Int,
+    doubledPenaltyWeight: Double
 )
 object ParamsDto:
   given Decoder[ParamsDto] = deriveDecoder
@@ -95,11 +96,13 @@ object Api:
       _ <- cond(p.distanceToleranceHigh >= 1.0, "distanceToleranceHigh must be >= 1")
       _ <- cond(p.distanceToleranceLow <= p.distanceToleranceHigh, "tolerance low must be <= high")
       _ <- cond(p.numSuggestions >= 1 && p.numSuggestions <= 5, "numSuggestions must be in [1,5]")
+      _ <- cond(inUnit(p.doubledPenaltyWeight), "doubledPenaltyWeight must be in [0,1]")
     yield RouteParams.default.copy(
       infraWeight = p.infraWeight,
       scenicWeight = p.scenicWeight,
       gradientWeight = 0.0,
       distanceToleranceLow = p.distanceToleranceLow,
       distanceToleranceHigh = p.distanceToleranceHigh,
-      numSuggestions = p.numSuggestions
+      numSuggestions = p.numSuggestions,
+      doubledPenaltyWeight = p.doubledPenaltyWeight
     )

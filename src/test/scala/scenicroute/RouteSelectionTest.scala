@@ -59,6 +59,52 @@ class RouteSelectionTest extends munit.FunSuite:
     // |{p2,p3}| / |{p1,p2,p3,p4}| = 2/4 = 0.5
     assertEqualsDouble(RouteSelection.overlap(a, b), 0.5, 0.001)
 
+  // ── doubledFraction ───────────────────────────────────────────────────────────
+
+  test("doubledFraction of a clean, non-repeating path is 0.0"):
+    val r = mkRoute(1000.0, List(p1, p2, p3, p4), 0.5, 0.5)
+    assertEqualsDouble(RouteSelection.doubledFraction(r), 0.0, 0.001)
+
+  test("doubledFraction of a pure out-and-back is 1.0"):
+    // out to p3 then back: every segment ridden twice
+    val r = mkRoute(1000.0, List(p1, p2, p3, p2, p1), 0.5, 0.5)
+    assertEqualsDouble(RouteSelection.doubledFraction(r), 1.0, 0.001)
+
+  test("doubledFraction of a single-point route is 0.0"):
+    val r = mkRoute(0.0, List(p1), 0.5, 0.5)
+    assertEqualsDouble(RouteSelection.doubledFraction(r), 0.0, 0.001)
+
+  test("doubledFraction of a loop with a short spur is small but positive"):
+    // Triangle-ish loop p1→p2→p3→p1 plus an out-and-back spur p1→pSpur→p1.
+    // p1..p3 collinear (equal legs), spur is a shorter leg ridden twice.
+    val pSpur = LatLon(52.495, 13.40) // half a leg south of p1
+    val r     = mkRoute(1000.0, List(p1, p2, p3, p1, pSpur, p1), 0.5, 0.5)
+    val f     = RouteSelection.doubledFraction(r)
+    assert(f > 0.0, "expected positive doubling")
+    assert(f < 0.5, "expected mostly-clean loop")
+
+  // ── blendedScore penalty ──────────────────────────────────────────────────────
+
+  test("blendedScore demotes a doubled route below an equal-quality clean one"):
+    val clean   = mkRoute(1000.0, List(p1, p2, p3, p4), 0.6, 0.6)
+    val doubled = mkRoute(1000.0, List(p1, p2, p3, p2, p1), 0.6, 0.6)
+    assert(
+      RouteSelection.blendedScore(clean, params) > RouteSelection.blendedScore(doubled, params)
+    )
+
+  test("blendedScore penalty is disabled at doubledPenaltyWeight = 0"):
+    val noPenalty = params.copy(doubledPenaltyWeight = 0.0)
+    val doubled   = mkRoute(1000.0, List(p1, p2, p3, p2, p1), 0.6, 0.6)
+    // quality only: 0.5*0.6 + 0.5*0.6 = 0.6
+    assertEqualsDouble(RouteSelection.blendedScore(doubled, noPenalty), 0.6, 0.001)
+
+  test("rankAndSelect ranks a clean loop above an equal-quality out-and-back"):
+    val clean   = mkRoute(1000.0, List(p1, p2, p3, p4), 0.6, 0.6)
+    val doubled = mkRoute(1000.0, List(p1, p2, p3, p2, p1), 0.6, 0.6)
+    RouteSelection.rankAndSelect(List(doubled, clean), params) match
+      case first :: _ => assertEqualsDouble(first.blendedScore, 0.6, 0.001) // the clean one
+      case Nil        => fail("expected ranked results")
+
   // ── dedupe ──────────────────────────────────────────────────────────────────
 
   test("dedupe keeps two fully disjoint routes"):

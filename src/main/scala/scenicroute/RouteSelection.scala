@@ -1,14 +1,49 @@
 package scenicroute
 
+import com.graphhopper.util.DistanceCalcEarth
+
 object RouteSelection:
+
+  // Reused for segment lengths in doubledFraction; DistanceCalcEarth is on the
+  // classpath via graphhopper-core, so we don't hand-roll haversine.
+  private val distCalc = DistanceCalcEarth()
 
   def filterByDistance(routes: Seq[Route], targetM: Double, params: RouteParams): Seq[Route] =
     val lo = params.distanceToleranceLow * targetM
     val hi = params.distanceToleranceHigh * targetM
     routes.filter(r => r.distanceMeters >= lo && r.distanceMeters <= hi)
 
+  /** Length-weighted fraction of a route ridden on segments traversed 2+ times (counting every
+    * pass): 0.0 = clean loop, 1.0 = pure out-and-back. Derived from `points` alone, since a Route
+    * carries no edge/way IDs. Endpoints are snapped to a ~1e-5° (~1 m) grid so distinct roads don't
+    * collide, and each segment key is direction-normalised so out and back match.
+    */
+  def doubledFraction(route: Route): Double =
+    val pts = route.points
+    if pts.sizeIs < 2 then 0.0
+    else
+      val segs = pts.zip(pts.drop(1)).map { (a, b) =>
+        val ka = (math.round(a.lat * 1e5), math.round(a.lon * 1e5))
+        val kb = (math.round(b.lat * 1e5), math.round(b.lon * 1e5))
+        // Direction-normalise the segment key using only `<` (Wart.Equals bans `==`).
+        val key =
+          if ka._1 < kb._1 then (ka, kb)
+          else if kb._1 < ka._1 then (kb, ka)
+          else if ka._2 < kb._2 then (ka, kb)
+          else (kb, ka)
+        val len = distCalc.calcDist(a.lat, a.lon, b.lat, b.lon)
+        (key, len)
+      }
+      val total = segs.map(_._2).sum
+      if total <= 0.0 then 0.0
+      else
+        val doubled = segs.groupBy(_._1).values.filter(_.sizeIs >= 2).flatten.map(_._2).sum
+        doubled / total
+
   def blendedScore(route: Route, params: RouteParams): Double =
-    params.infraWeight * route.meanCqiQuality + params.scenicWeight * route.meanScenicQuality
+    val quality =
+      params.infraWeight * route.meanCqiQuality + params.scenicWeight * route.meanScenicQuality
+    quality * (1.0 - params.doubledPenaltyWeight * doubledFraction(route))
 
   // ponytail: rounded-point Jaccard; swap for edge-id sets if too coarse
   @SuppressWarnings(Array("org.wartremover.warts.Any"))

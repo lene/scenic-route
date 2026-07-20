@@ -8,7 +8,10 @@ final case class RouteParams(
     distanceToleranceLow: Double,
     distanceToleranceHigh: Double,
     numSuggestions: Int,
-    overlapThreshold: Double
+    overlapThreshold: Double,
+    // Soft penalty for riding the same road out and back within one route:
+    // score *= (1 - doubledPenaltyWeight * doubledFraction). 0 disables it.
+    doubledPenaltyWeight: Double
 )
 
 object RouteParams:
@@ -19,5 +22,6 @@ object RouteParams:
     distanceToleranceLow = 0.85,
     distanceToleranceHigh = 1.15,
     numSuggestions = 4,
-    overlapThreshold = 0.7
+    overlapThreshold = 0.7,
+    doubledPenaltyWeight = 0.8
   )

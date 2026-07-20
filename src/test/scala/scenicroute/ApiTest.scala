@@ -22,7 +22,7 @@ class ApiTest extends munit.FunSuite:
   private val p1 = LatLon(52.50, 13.40)
   private val p2 = LatLon(52.51, 13.41)
 
-  private val validParams = ParamsDto(0.5, 0.5, 0.85, 1.15, 4)
+  private val validParams = ParamsDto(0.5, 0.5, 0.85, 1.15, 4, 0.8)
   private val validReq = RouteReq(PointDto(52.5, 13.4), PointDto(52.42, 13.65), 30.0, validParams)
 
   // ── wire decoding ───────────────────────────────────────────────────────────
@@ -31,7 +31,7 @@ class ApiTest extends munit.FunSuite:
     val json =
       """{"start":{"lat":52.5,"lon":13.4},"end":{"lat":52.42,"lon":13.65},"targetKm":30,
          |"params":{"infraWeight":0.5,"scenicWeight":0.5,"distanceToleranceLow":0.85,
-         |"distanceToleranceHigh":1.15,"numSuggestions":4}}""".stripMargin
+         |"distanceToleranceHigh":1.15,"numSuggestions":4,"doubledPenaltyWeight":0.8}}""".stripMargin
     assertEquals(decode[RouteReq](json), Right[io.circe.Error, RouteReq](validReq))
 
   // ── toDomain validation ──────────────────────────────────────────────────────
@@ -60,6 +60,11 @@ class ApiTest extends munit.FunSuite:
   test("toDomain rejects inverted tolerance bounds"):
     assert(
       Api.toDomain(validReq.copy(params = validParams.copy(distanceToleranceLow = 1.2))).isLeft
+    )
+
+  test("toDomain rejects doubledPenaltyWeight outside [0,1]"):
+    assert(
+      Api.toDomain(validReq.copy(params = validParams.copy(doubledPenaltyWeight = 1.5))).isLeft
     )
 
   // ── toResponse ───────────────────────────────────────────────────────────────

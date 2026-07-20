@@ -18,6 +18,7 @@ export default function App() {
   const [balance, setBalance] = useState(0.5)
   const [tolerancePct, setTolerance] = useState(0.2)
   const [numSuggestions, setSuggestions] = useState(3)
+  const [avoidBacktracking, setAvoidBacktracking] = useState(0.8)
   const [routes, setRoutes] = useState<RouteDto[]>([])
   const [geojson, setGeojson] = useState<GeoJson | null>(null)
   const [selectedRank, setSelectedRank] = useState<number | null>(null)
@@ -54,7 +55,7 @@ export default function App() {
     setError(null)
     setSelectedRank(null)
     try {
-      const params = toParamsDto({ balance, tolerancePct, numSuggestions })
+      const params = toParamsDto({ balance, tolerancePct, numSuggestions, avoidBacktracking })
       const resp = await findRoutes({ start, end: dest, targetKm, params })
       setRoutes(resp.routes)
       setGeojson(resp.geojson)
@@ -68,7 +69,7 @@ export default function App() {
     } finally {
       setLoading(false)
     }
-  }, [start, end, loop, targetKm, balance, tolerancePct, numSuggestions])
+  }, [start, end, loop, targetKm, balance, tolerancePct, numSuggestions, avoidBacktracking])
 
   return (
     <div className="app">
@@ -81,6 +82,7 @@ export default function App() {
         balance={balance}
         tolerancePct={tolerancePct}
         numSuggestions={numSuggestions}
+        avoidBacktracking={avoidBacktracking}
         routes={routes}
         selectedRank={selectedRank}
         loading={loading}
@@ -91,6 +93,7 @@ export default function App() {
         onSetBalance={setBalance}
         onSetTolerance={setTolerance}
         onSetSuggestions={setSuggestions}
+        onSetAvoidBacktracking={setAvoidBacktracking}
         onPickPlace={placeActive}
         onFind={onFind}
         onSelectRoute={setSelectedRank}

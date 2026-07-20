@@ -20,6 +20,7 @@ const req: RouteReq = {
     distanceToleranceLow: 0.8,
     distanceToleranceHigh: 1.2,
     numSuggestions: 3,
+    doubledPenaltyWeight: 0.8,
   },
 }
 

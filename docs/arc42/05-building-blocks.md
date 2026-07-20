@@ -102,11 +102,21 @@ Pure pipeline (no GH dependency) — all functions known-answer testable:
 
 ```
 filterByDistance(routes, targetM, params) → keeps dist ∈ [low·target, high·target]
-blendedScore(route, params) = infraWeight·meanCqiQuality + scenicWeight·meanScenicQuality
+doubledFraction(route) = length-weighted fraction ridden on segments traversed ≥2× (0 clean … 1 pure out-and-back)
+blendedScore(route, params) = (infraWeight·meanCqiQuality + scenicWeight·meanScenicQuality)
+                              · (1 − doubledPenaltyWeight · doubledFraction(route))
 overlap(a, b) = Jaccard of rounded lat/lon point sets (ponytail: swap for edge-id sets if too coarse)
 dedupe(ranked, threshold) = greedy in rank order; drop if overlap > threshold with any kept route
 rankAndSelect(routes, params) = score → sort desc → dedupe → take min(numSuggestions, 5)
 ```
+
+**`doubledFraction`** detects out-and-back rides (a road ridden out then back to pad
+distance). Since `Route` carries no edge/way IDs, it works from `points`: consecutive
+segments are snapped to a ~1e-5° grid and direction-normalised into keys; a key seen
+≥2× is doubled, and its length (via GraphHopper `DistanceCalcEarth`) counts toward the
+numerator. The result multiplies into `blendedScore` as a soft penalty
+(`doubledPenaltyWeight`, default 0.8, 0 disables) — a pure out-and-back is demoted to
+last but still returned as a fallback when nothing cleaner exists.
 
 ### RankedRoute
 

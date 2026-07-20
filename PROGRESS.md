@@ -44,10 +44,20 @@ Docker stack **verified live**: `/health` ok · `/geocode` 5 hits · `POST /rout
 (GeoJSON + per-route GPX) · SPA served at `:8080`. (Dockerfiles are a Milestone C
 deliverable, pulled forward here to run the browser acceptance.)
 
+### Follow-on fix (post-V2b, on top of the MVP): out-and-back penalty
+Live V2b testing showed the router padding distance by riding roads out-and-back.
+Added `RouteSelection.doubledFraction` (geometry-derived self-overlap, no edge IDs)
+folded softly into `blendedScore` (`doubledPenaltyWeight`, default 0.8), exposed as
+an "Avoid backtracking" UI slider. DECISIONS #30.
+- 84 Scala tests (was 76) + 16 web tests (was 15); all lint gates green.
+- **Live-proven** on the Docker stack: same A→B request, top-route doubled-fraction
+  `0.655 → 0.006` when the penalty is switched 0.0 → 0.8 (out-and-backs demoted #1→#4,
+  clean loops promoted to top; score math exact: `0.45·(1−0.8·0.655)=0.214`).
+
 ### Next step
 **Await sign-off at CHECKPOINT V2b**, then start **Milestone C — PWA + deploy + docs**
-(vite-plugin-pwa manifest/SW; responsive/mobile; Dockerfile + docker-compose;
-CORS/origin config; CI `web` job; docs + arc42 frontend/api; DECISIONS #30 + SPEC note).
+(vite-plugin-pwa manifest/SW; responsive/mobile; Dockerfile + docker-compose already
+landed; CORS/origin config; CI `web` job; docs + arc42 frontend/api; SPEC note).
 
 ### Blocked on
 Human sign-off before Milestone C.

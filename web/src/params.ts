@@ -8,12 +8,14 @@ export interface ParamsDto {
   distanceToleranceLow: number
   distanceToleranceHigh: number
   numSuggestions: number
+  doubledPenaltyWeight: number
 }
 
 export interface Controls {
   balance: number // 0 = all infra, 1 = all scenic
   tolerancePct: number // fraction; band is target * [1-p, 1+p]
   numSuggestions: number // 1..5
+  avoidBacktracking: number // 0 = allow out-and-backs, 1 = penalize them hardest
 }
 
 const clamp = (x: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, x))
@@ -27,5 +29,6 @@ export function toParamsDto(c: Controls): ParamsDto {
     distanceToleranceLow: 1 - p,
     distanceToleranceHigh: 1 + p,
     numSuggestions: clamp(Math.round(c.numSuggestions), 1, 5),
+    doubledPenaltyWeight: clamp(c.avoidBacktracking, 0, 1),
   }
 }

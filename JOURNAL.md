@@ -153,3 +153,21 @@ Append-only. Discoveries, dead ends, gotchas, surprises. Distinct from DECISIONS
 **Bundle size**: MapLibre pushes the JS bundle to ~956 KB (267 KB gzip); Vite warns >500 KB. Acceptable for a personal tool over LAN. `// ponytail:` code-split MapLibre via dynamic `import()` only if first-load latency bites.
 
 **Param mapping is where the two validators must agree**: `toParamsDto` is built so its output *always* passes `Api.toParams` (low = 1−p with p capped at 0.9 so low ∈ [0.1,1]; high = 1+p ≥ 1; low ≤ high; suggestions rounded+clamped to [1,5]). The frontend test asserts the band invariants directly so drift from the backend rules fails a unit test, not a live request.
+
+## 2026-07-20 — Out-and-back (doubled-segment) penalty
+
+**The router padded distance with out-and-backs**: to hit a target distance the loop/via generators would ride a road out and straight back. Fixed with a `doubledFraction(route)` self-overlap metric folded softly into `blendedScore`.
+
+**`Route` has no edge/way IDs → doubling must come from `points`**: the existing between-route `overlap` is a Jaccard over a *set* of 1e-3°-rounded points — direction-agnostic and it collapses duplicates, so it is structurally blind to a single route doubling back. The self-overlap metric instead builds a *multiset* of consecutive-point segments, keyed on a finer ~1e-5° (~1 m) grid and direction-normalised (canonical endpoint order), each weighted by length; a key seen ≥2× is doubled. `doubled/total` ∈ [0,1]: 0 clean loop, 1 pure out-and-back.
+
+**Reused GH `DistanceCalcEarth` for segment length** — no haversine helper exists in the repo, and a hand-rolled trig block is wart-bait. `com.graphhopper.util.DistanceCalcEarth` is already on the classpath (graphhopper-core); one private instance, `.calcDist(lat1,lon1,lat2,lon2)`.
+
+**`Wart.Equals` bans `==` even on primitive `Long`**: direction-normalising the segment key with `if ka._1 < kb._1 || (ka._1 == kb._1 && …)` tripped `[wartremover:Equals]`. Rewrote as a pure `<`-cascade (`if a<b … else if b<a … else if …`), no equality operator. (`===` would need an `Eq` instance; the cascade is simpler.)
+
+**`Wart.IterableOps` bans `.tail`**: `pts.zip(pts.tail)` → use `pts.zip(pts.drop(1))`.
+
+**`s"…$f"` in a test `assert` message trips `Wart.Any`**: same StringContext.s→Any* widening as in Main/RouteExport. Use a static (non-interpolated) message string in `assert(cond, "msg")`.
+
+**Adding a required field to a wire DTO breaks every hardcoded JSON fixture**: the new `ParamsDto.doubledPenaltyWeight` made `RoutesTest`/`ApiTest`'s literal request JSON fail to decode (missing field → 400 / decode-Left). Grep every `ParamsDto(`/`RouteParams(` positional construction and every hardcoded params JSON string when widening a DTO. Backward-compat held on the metric itself: existing straight-line test routes have `doubledFraction = 0` → penalty factor 1 → unchanged scores.
+
+**Soft penalty > hard reject for this**: a hard filter on doubling returns nothing when every candidate is an out-and-back (dead-end start, narrow tolerance); the multiplicative `score × (1 − w·fraction)` with w,fraction ∈ [0,1] keeps the score non-negative, auto-demotes doubled routes to last, and still returns the least-bad — no fallback branch needed.
