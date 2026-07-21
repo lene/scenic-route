@@ -109,6 +109,10 @@ so you can reopen them.
 - Any UI. v1 output is files only — **GPX + GeoJSON, no map UI** (§7.4). GeoJSON
   is the checkpoint-verification artefact (drag onto geojson.io to eyeball); a
   map app earns its place only if that proves painful.
+  **V2 update (2026-07):** once routing worked, the owner reopened this — V2 adds a
+  web UI (React + MapLibre PWA) over an http4s/tapir API wrapping the same `Router`.
+  The routing core, GPX, and GeoJSON are unchanged; the UI is additive. See
+  DECISIONS #32 and `docs/arc42/05-building-blocks.md` "Level 2: Web (V2)".
 - Turn-by-turn navigation / voice / mobile app.
 
 ## 4. Environment & stack assumptions

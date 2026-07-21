@@ -178,6 +178,56 @@ also writes its A→B (30 km) + loop (20 km) exports. `out/` is git-ignored.
 
 ---
 
+## Level 2: Web (V2)
+
+V2 adds a web UI. Routing stays in the JVM (GraphHopper is JVM-only); the browser
+talks to it over a small HTTP API. SPEC §5.4 anticipated this "routing service" seam;
+V2 reopens the v1 "files, no UI" decision (§3/§7.4) — see DECISIONS #32.
+
+### HTTP API (backend)
+
+http4s (ember) + tapir + circe, in the existing sbt module. Routing and geocoding are
+**injected** as functions so the HTTP layer is unit-tested with stubs (no graph/network).
+
+- `Api` — wire DTOs (`PointDto`, `ParamsDto`, `RouteReq`, `RouteDto`, `RouteResp`) with
+  circe codecs; pure `toDomain` (validation: coord ranges, `targetKm > 0`, weights ∈ [0,1],
+  tolerance band, `numSuggestions` ∈ [1,5], `doubledPenaltyWeight` ∈ [0,1]) and `toResponse`
+  (reuses `RouteExport.toGeoJson`/`toGpx`).
+- `Routes` — tapir endpoints over injected `RouteFn`/`GeocodeFn`:
+  `GET /health`, `POST /routes` (`{start,end,targetKm,params}` → `{geojson, routes:[…gpx]}`),
+  `GET /geocode?q=` (Nominatim proxy).
+- `Geocode.parseNominatim` — pure jsonv2 parser (string lat/lon → Double, drops malformed).
+- `Server` — `IOApp` composition root: loads the area graph once, live Nominatim client
+  (User-Agent + degrade-to-empty on error), allow-all CORS, env config
+  (`SCENIC_AREA`/`SCENIC_HOST`/`SCENIC_PORT`).
+
+### Web frontend (`web/`)
+
+Vite + React + TypeScript + MapLibre GL, PWA. Logic split into pure, vitest-covered
+modules and thin view components:
+
+- `params.ts` — sidebar controls → `ParamsDto` (balance→infra/scenic; ±pct→low/high band
+  clamped so low > 0; `avoidBacktracking`→`doubledPenaltyWeight`). Built to always pass the
+  backend validator.
+- `api.ts` — typed `findRoutes` (POST /routes) + `geocode` (GET /geocode); same-origin in
+  dev via Vite proxy, `VITE_API_BASE` in prod.
+- `gpx.ts` — client-side blob download (GPX arrives inline in the /routes response).
+- `MapView.tsx` — MapLibre OSM raster + attribution; click/drag start+end markers; renders
+  the returned FeatureCollection coloured by simplestyle `stroke`; selected route highlighted.
+- `Sidebar.tsx` — address search, loop toggle, essentials params + "Avoid backtracking",
+  Find button, ranked-route list with per-route GPX + hover-highlight.
+- PWA via `vite-plugin-pwa` (`autoUpdate`): manifest + precached app shell; routing needs
+  the network. Responsive layout stacks controls above the map below 640 px.
+
+### Deploy
+
+`Dockerfile` runs the `sbt stage` output on a JRE image (graph/data/areas mounted as
+volumes, not baked). `web/Dockerfile` builds the static bundle into nginx, which
+reverse-proxies `/routes`,`/geocode`,`/health` to the backend so the browser sees a
+single origin (no CORS). `docker compose up --build` serves both at `:8080`.
+
+---
+
 ## Cross-cutting: WartRemover suppressions (Phase 2)
 
 | Location | Wart suppressed | Reason |

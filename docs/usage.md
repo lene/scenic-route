@@ -1,10 +1,34 @@
 # Usage
 
-scenic-route takes a start, an end, and a target riding distance, and writes a
-small ranked set of scenic rides of roughly that length as **GPX + GeoJSON**.
-(The start and end may be the same point — a loop from home.)
+scenic-route takes a start, an end, and a target riding distance, and returns a
+small ranked set of scenic rides of roughly that length. The **CLI** (v1) writes
+them as **GPX + GeoJSON** files; the **web UI** (V2) shows them on a map and exports
+each as GPX. (The start and end may be the same point — a loop from home.)
 
-## Run
+## Web UI (V2)
+
+The quickest way to run the whole thing is Docker — nginx serves the app and
+reverse-proxies the API, so the browser sees one origin:
+
+```
+sbt stage                    # package the backend → target/universal/stage
+docker compose up --build    # then open http://localhost:8080
+```
+
+For frontend development against a locally running backend:
+
+```
+sbt "runMain scenicroute.Server"   # API on :8080 (~18 s to load the Berlin graph)
+cd web && npm install && npm run dev   # UI on :5173 (Vite proxies the API to :8080)
+```
+
+In the app: search an address or click the map to set **start** and **end** (or toggle
+**Loop from start**), pick a **target distance**, adjust the **essentials**
+(infra↔scenic balance, ±tolerance, suggestions, avoid-backtracking), press **Find
+routes**, then download any ride as **GPX**. It installs as a PWA (Add to Home Screen)
+and is usable on a phone; routing itself needs a network connection.
+
+## CLI (v1)
 
 ```
 sbt "runMain scenicroute.Main <areaToml> <startLat,startLon> <endLat,endLon> <targetKm>"

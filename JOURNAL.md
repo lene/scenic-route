@@ -181,3 +181,15 @@ Append-only. Discoveries, dead ends, gotchas, surprises. Distinct from DECISIONS
 **`Wart.Overloading` AND `Wart.DefaultArguments` are both on.** Wanted a `blendedScore` overload taking a precomputed fraction (compute once, not twice); overloading is banned, and the fallback of a default arg (`doubled: Double = …`) is *also* banned. Solution: a distinctly-named private `scoreWith(route, params, doubled)` that the public `blendedScore(route, params)` delegates to. `rankAndSelect` pairs each route with its fraction once (`routes.map(r => (r, doubledFraction(r)))`), filters on `_._2`, and scores via `scoreWith`.
 
 **GH `pass_through` on the tiny test fixture didn't break routing** — `DistanceTargetTest` (parallel.osm.xml, 3 nodes) stayed green with the hint set. Scala-3 parameter untupling lets `pool.map((r, f) => …)` consume a `Seq[(Route, Double)]` directly (no `case`).
+
+## 2026-07-21 — V2 Milestone C (PWA + deploy + docs)
+
+**`vite-plugin-pwa` with `registerType: 'autoUpdate'` + `injectRegister: 'auto'` (default) needs no code** — it injects `registerSW.js` into `index.html` at build and generates `sw.js` + `manifest.webmanifest` via workbox `generateSW`. No `virtual:pwa-register` import, so no `vite-plugin-pwa/client` type reference needed and `tsc -b` stays clean. Only the app shell is precached; `/routes`+`/geocode` fall through to the network (NetworkOnly), which is what we want — routing can't work offline.
+
+**nginx's default `mime.types` omits `.webmanifest`** → it served the manifest as `application/octet-stream`. Browsers mostly still install, but add `location = /manifest.webmanifest { default_type application/manifest+json; }` to be correct, and `location = /sw.js { add_header Cache-Control "no-cache"; }` so `autoUpdate` can actually ship a new SW (a cached service worker would pin the old build).
+
+**PWA icons generated with PIL, committed under `web/public/`** (Vite copies `public/` to the dist root verbatim). 192+512 for install, a separate `pwa-maskable-512` with ~6% extra padding for Android's safe zone (`purpose: "maskable"`), an SVG favicon (crisp at any size), and a 180px apple-touch-icon. `web/.dockerignore` must NOT exclude `public/` (it doesn't) or the icons vanish from the nginx image.
+
+**Installability is verifiable without a browser**: curl the origin for `manifest.webmanifest` (valid JSON, `display:standalone`, ≥192+512 icons), `sw.js` (200), and confirm `index.html` links the manifest + registers the SW. That covers Chrome's install criteria; only the actual "Add to Home Screen" gesture + phone-viewport feel needs a real device (the checkpoint's human gate).
+
+**CI `web` job**: `defaults.run.working-directory: web` + `actions/setup-node` with `cache: npm` and `cache-dependency-path: web/package-lock.json` keeps the frontend job self-contained alongside the existing `scala`/`python` jobs. No untrusted `github.event.*` interpolation in `run:` steps (workflow-injection safe).

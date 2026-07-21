@@ -141,3 +141,25 @@ button.find:disabled {
   font-size: 0.75rem;
   padding: 4px 6px;
 }
+
+/* Mobile: stack the controls above the map instead of side-by-side. */
+@media (max-width: 640px) {
+  .app {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    flex: 0 0 auto;
+    max-height: 50vh;
+    border-right: none;
+    border-bottom: 1px solid #ddd;
+    /* keep controls clear of a notch/home indicator */
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-top: max(16px, env(safe-area-inset-top));
+  }
+  .map {
+    flex: 1 1 auto;
+    min-height: 50vh;
+  }
+}
